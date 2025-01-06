@@ -1449,7 +1449,7 @@ reg_t index[P.VU.vlmax]; \
     require(nf == 1); \
   VI_DUPLICATE_VREG(1,insn.rs1(), elt_width); \
   for (reg_t i = 0; i < vl; ++i) { \
-    const reg_t baseAddr = index[i] + insn.v_simm11(); \
+    const reg_t baseAddr = index[i] + insn.v_s_simm11(); \
     const reg_t baseBias = P.get_csr(CSR_PDS) + (baseAddr & ~3) * P.get_csr(CSR_NUMW) * P.get_csr(CSR_NUMT); \
     VI_STRIP(i) \
     VI12_ELEMENT_SKIP(i); \
