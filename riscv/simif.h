@@ -4,9 +4,10 @@
 #define _RISCV_SIMIF_H
 
 #include "decode.h"
+#include "difftest/difftrace.h"
 
 // this is the interface to the simulator used by the processors and memory
-class simif_t
+class simif_t : public diff_trace_t
 {
 public:
   // should return NULL for MMIO addresses

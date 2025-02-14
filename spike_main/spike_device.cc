@@ -137,16 +137,6 @@ static std::vector<mem_cfg_t> parse_mem_layout(const char* arg)
   return res;
 }
 
-static std::vector<std::pair<reg_t, mem_t*>> make_mems(const std::vector<mem_cfg_t> &layout)
-{
-  std::vector<std::pair<reg_t, mem_t*>> mems;
-  mems.reserve(layout.size());
-  for (const auto &cfg : layout) {
-    mems.push_back(std::make_pair(cfg.base, new mem_t(cfg.size)));
-  }
-  return mems;
-}
-
 static unsigned long atoul_safe(const char* s)
 {
   char* e;
@@ -165,6 +155,8 @@ static unsigned long atoul_nonzero_safe(const char* s)
 }
 
 static std::vector<int> parse_hartids(const char *s)
+// 假设输入字符串是 "0,1,2,3"，那么执行后的返回结果为：
+// std::vector<int> hartids = {0, 1, 2, 3};
 {
   std::string const str(s);
   std::stringstream stream(str);
@@ -246,6 +238,7 @@ int spike_device::alloc_const_mem(uint64_t size, uint64_t *vaddr) {
 }
 
 int spike_device::alloc_local_mem(uint64_t size, uint64_t *vaddr){
+  // 函数名起的有问题，这个函数负责所有9xxxxxxx地址的分配，包括lds、pds、metadata buffer等
   uint64_t base;
   #define PGSHIFT 12
   const reg_t PGSIZE = 1 << PGSHIFT;
@@ -352,7 +345,7 @@ int spike_device::run(meta_data* knl_data,uint64_t knl_start_pc){
   uint64_t num_workgroup_y=knl_data->kernel_size[1];
   uint64_t num_workgroup_z=knl_data->kernel_size[2];
   uint64_t num_workgroup=num_workgroup_x*num_workgroup_y*num_workgroup_z;
-  uint64_t num_processor=num_warp*num_workgroup;
+  uint64_t num_processor=num_warp*num_workgroup;    // 这是本kernel需要的所有warp的数量
   uint64_t ldssize=knl_data->ldsSize;
   //uint64_t pdssize=knl_data->pdsSize * num_thread;
   uint64_t pdssize = 0x10000000;
@@ -410,7 +403,7 @@ int spike_device::run(meta_data* knl_data,uint64_t knl_start_pc){
     .support_haltgroups = true,
     .support_impebreak = true
   };
-  cfg_arg_t<size_t> nprocs(1);
+  cfg_arg_t<size_t> nprocs(1);  // init nprocs to 1, will be overwritten by -p arg
 
   auto const device_parser = [&plugin_devices](const char *s) {
     const std::string str(s);
@@ -464,6 +457,8 @@ int spike_device::run(meta_data* knl_data,uint64_t knl_start_pc){
 #ifdef HAVE_BOOST_ASIO
   parser.option('s', 0, 0, [&](const char* s){socket = true;});
 #endif
+  // 将命令行选项的配置信息添加到 opts 列表中. 例如下面为选项 '-p' 注册了一个回调函数
+  // 后续parser实际执行时，会将 '-p' 选项的参数转换为无符号整数并赋值给 nprocs
   parser.option('p', 0, 1, [&](const char* s){nprocs = atoul_nonzero_safe(s);});
   parser.option('m', 0, 1, [&](const char* s){cfg.mem_layout = parse_mem_layout(s);});
   // I wanted to use --halted, but for some reason that doesn't work.
@@ -546,7 +541,7 @@ int spike_device::run(meta_data* knl_data,uint64_t knl_start_pc){
   char arg_start_pc[32];;
   char arg_logfilename[64];
   sprintf(arg_logfilename,"--log=%s",logfilename);
-  sprintf(arg_num_core,"-p%ld",num_processor);
+  sprintf(arg_num_core,"-p%ld",num_processor);  // arg_num_core = "-p{num_processor}"
   sprintf(arg_gpgpu,"numw:%ld,numt:%ld,numwg:%ld,kernelx:%ld,kernely:%ld,kernelz:%ld,ldssize:0x%lx,pdssize:0x%lx,pdsbase:0x%lx,knlbase:0x%lx,currwgid:%lx",\
         num_warp,num_thread,num_workgroup,num_workgroup_x,num_workgroup_y,num_workgroup_z,ldssize,pdssize,pdsbase,knlbase,currwgid);
   printf("arg gpgpu is %s\n",arg_gpgpu);
@@ -577,9 +572,9 @@ int spike_device::run(meta_data* knl_data,uint64_t knl_start_pc){
   }
   printf("\n");
 
-  auto argv1=parser.parse(argv); 
+  auto argv1=parser.parse(argv);  // nprocs is set to num_processor = wg_size * num_workgroup
 
-  std::vector<std::string> htif_args(argv1, (const char*const*)argv + argc);
+  std::vector<std::string> htif_args(argv1, (const char*const*)argv + argc); // vector的范围构造方法
   //std::vector<std::pair<reg_t, mem_t*>> mems = make_mems(cfg.mem_layout());
 
 
@@ -602,17 +597,19 @@ int spike_device::run(meta_data* knl_data,uint64_t knl_start_pc){
                 << ") doesn't match specified number of processors ("
                 << nprocs() << ").\n";
       exit(1);
+      // 这里是正确的吗？cfg.hartids().size() must equal nprocs()
+      // however, the else block below sets cfg.hartids().size() = num_warp * SPIKE_RUN_WG_NUM < nprocs()
     }
   } else {
     // Set default set of hartids based on nprocs, but don't set the
     // explicit_hartids flag (which means that downstream code can know that
     // we've only set the number of harts, not explicitly chosen their IDs).
     std::vector<int> default_hartids;
-    default_hartids.reserve(nprocs());
+    default_hartids.reserve(nprocs());  // 最大大小为 num_processor = wg_size * num_workgroup
     for (size_t i = 0; i < num_warp * SPIKE_RUN_WG_NUM; ++i) {
       default_hartids.push_back(i);
     }
-    cfg.hartids = default_hartids;
+    cfg.hartids = default_hartids;  // cfg.hartids().size() = num_warp * SPIKE_RUN_WG_NUM
   }
 
   std::vector<std::pair<reg_t, mem_t*>> all_buffer_data(const_buffer_data);
@@ -625,6 +622,8 @@ int spike_device::run(meta_data* knl_data,uint64_t knl_start_pc){
 //  char log_name[256] = {0};
   for (uint64_t i = 0; i < num_workgroup / SPIKE_RUN_WG_NUM; i++)
   {
+      // 例化sim_t时，其内部processor_t的数量由传入的cfg->nprocs()决定，也就是cfg.hartids().size()
+      // if !cfg.explicit_hartids, cfg.hartids().size() = num_warp * SPIKE_RUN_WG_NUM
       sim=new sim_t(&cfg, halted,
               all_buffer_data, plugin_devices, htif_args, dm_config, log_path, dtb_enabled, dtb_file,
 #ifdef HAVE_BOOST_ASIO
@@ -649,7 +648,7 @@ int spike_device::run(meta_data* knl_data,uint64_t knl_start_pc){
       if (dc) dc->set_log(log_cache);
 
       for (size_t i = 0; i < num_warp; i++)
-      {
+      { // TODO: 此处不完善。感觉迭代范围应该是 num_warp * SPIKE_RUN_WG_NUM
           if (ic) sim->get_core(i)->get_mmu()->register_memtracer(&*ic);
           if (dc) sim->get_core(i)->get_mmu()->register_memtracer(&*dc);
           for (auto e : extensions)

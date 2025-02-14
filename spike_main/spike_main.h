@@ -94,4 +94,14 @@ class spike_device{
     char* logfilename;
 };
 
+static std::vector<std::pair<reg_t, mem_t*>> make_mems(const std::vector<mem_cfg_t> &layout)
+{
+  std::vector<std::pair<reg_t, mem_t*>> mems;
+  mems.reserve(layout.size());
+  for (const auto &cfg : layout) {
+    mems.push_back(std::make_pair(cfg.base, new mem_t(cfg.size)));
+  }
+  return mems;
+}
+
 #endif // __VT_SPIKE_DEVICE_H__

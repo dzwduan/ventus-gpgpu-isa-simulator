@@ -268,7 +268,7 @@ void sim_t::main()
     if (debug || ctrlc_pressed)
       interactive();
     else
-      step(INTERLEAVE);
+      step(INTERLEAVE);  // switch to host here
     if (remote_bitbang) {
       remote_bitbang->tick();
     }
@@ -279,6 +279,11 @@ int sim_t::run()
 {
   host = context_t::current();
   target.init(sim_thread_main, this);
+  
+  // htif_t::run() will repeatedly call back into sim_t::idle(), each
+  // invocation of which will advance target time
+  // target.init将sim_thread_main函数的地址传给target.init，本质上是一个step函数
+  // htif_t::run() -> sim_t::idle() -> context_t::switch_to()，运行一次step函数
   return htif_t::run();
 }
 
