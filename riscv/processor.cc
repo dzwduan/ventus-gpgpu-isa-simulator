@@ -925,6 +925,34 @@ reg_t processor_t::get_csr(int which, insn_t insn, bool write, bool peek)
   throw trap_illegal_instruction(insn.bits());
 }
 
+std::vector<reg_t> processor_t::get_gpuvec_csr(int which, insn_t insn, bool write)
+{
+  auto search = state.csrmap.find(which);
+  if (search != state.csrmap.end()) {
+    if (!write) {
+      search->second->verify_permissions(insn, write);
+    }
+
+    auto gpuvec_csr = std::dynamic_pointer_cast<gpuvec_csr_t>(search->second);
+    if (gpuvec_csr) {
+      return gpuvec_csr->read_vector();
+    }
+  }
+  throw trap_illegal_instruction(insn.bits());
+}
+
+void processor_t::put_gpuvec_csr(int which, const std::vector<reg_t>& val)
+{
+  auto search = state.csrmap.find(which);
+  if (search != state.csrmap.end()) {
+    auto vector_csr = std::dynamic_pointer_cast<gpuvec_csr_t>(search->second);
+    if (vector_csr) {
+      vector_csr->write_vector(val);
+    }
+  }
+  return;
+}
+
 reg_t illegal_instruction(processor_t* p, insn_t insn, reg_t pc)
 {
   throw trap_illegal_instruction(insn.bits());

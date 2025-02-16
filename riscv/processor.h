@@ -304,6 +304,8 @@ public:
   simif_t* get_sim() const{return sim;}
   reg_t get_csr(int which, insn_t insn, bool write, bool peek = 0);
   reg_t get_csr(int which) { return get_csr(which, insn_t(0), false, true); }
+  std::vector<reg_t> get_gpuvec_csr(int which, insn_t insn, bool write);
+  void put_gpuvec_csr(int which, const std::vector<reg_t>& val);
   mmu_t* get_mmu() { return mmu; }
   state_t* get_state() { return &state; }
   unsigned get_xlen() const { return xlen; }
