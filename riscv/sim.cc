@@ -154,9 +154,9 @@ sim_t::sim_t(const cfg_t *cfg, bool halted,
         uint64_t local_id_x       = t % w.numt_per_wg_x;
         uint64_t local_id_y       = (t / w.numt_per_wg_x) % w.numt_per_wg_y;
         uint64_t local_id_z       = t / (w.numt_per_wg_x * w.numt_per_wg_y);
-        uint64_t global_id_x      = gidx * w.numt_per_wg_x + local_id_x;
-        uint64_t global_id_y      = gidy * w.numt_per_wg_y + local_id_y;
-        uint64_t global_id_z      = gidz * w.numt_per_wg_z + local_id_z;
+        uint64_t global_id_x      = gidx * w.numt_per_wg_x + local_id_x + w.threadID_globaloffset_x;
+        uint64_t global_id_y      = gidy * w.numt_per_wg_y + local_id_y + w.threadID_globaloffset_y;
+        uint64_t global_id_z      = gidz * w.numt_per_wg_z + local_id_z + w.threadID_globaloffset_z;
         uint64_t global_linear_id = (spike_curr_wgid + i) * w.thread_number * w.warp_number + t;
 
         thread_local_id_x[t - start_thread_local]       = local_id_x;

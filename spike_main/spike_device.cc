@@ -356,6 +356,9 @@ int spike_device::run(meta_data* knl_data,uint64_t knl_start_pc){
   uint64_t num_thread_per_wg_x = knl_data->numt_per_wg[0];
   uint64_t num_thread_per_wg_y = knl_data->numt_per_wg[1];
   uint64_t num_thread_per_wg_z = knl_data->numt_per_wg[2];
+  uint64_t threadID_globaloffset_x = knl_data->tID_globaloffset[0];
+  uint64_t threadID_globaloffset_y = knl_data->tID_globaloffset[1];
+  uint64_t threadID_globaloffset_z = knl_data->tID_globaloffset[2];
   uint64_t ldssize=knl_data->ldsSize;
   //uint64_t pdssize=knl_data->pdsSize * num_thread;
   uint64_t pdssize = 0x10000000;
@@ -554,10 +557,12 @@ int spike_device::run(meta_data* knl_data,uint64_t knl_start_pc){
     "numw:%ld,numt:%ld,numwg:%ld,"
     "kernelx:%ld,kernely:%ld,kernelz:%ld,"
     "wgsizex:%ld,wgsizey:%ld,wgsizez:%ld,"
+    "gloffx:%ld,gloffy:%ld,gloffz:%ld,"
     "ldssize:0x%lx,pdssize:0x%lx,pdsbase:0x%lx,knlbase:0x%lx,currwgid:%lx",
     num_warp,num_thread,num_workgroup,
     num_workgroup_x,num_workgroup_y,num_workgroup_z,
     num_thread_per_wg_x,num_thread_per_wg_y,num_thread_per_wg_z,
+    threadID_globaloffset_x,threadID_globaloffset_y,threadID_globaloffset_z,
     ldssize,pdssize,pdsbase,knlbase,currwgid);
   fprintf(stderr, "arg gpgpu is %s\n",arg_gpgpu);
   sprintf(arg_vlen_elen,"vlen:%ld,elen:%d",num_thread*32,32);
@@ -677,10 +682,12 @@ int spike_device::run(meta_data* knl_data,uint64_t knl_start_pc){
         "numw:%ld,numt:%ld,numwg:%ld,"
         "kernelx:%ld,kernely:%ld,kernelz:%ld,"
         "wgsizex:%ld,wgsizey:%ld,wgsizez:%ld,"
+        "gloffx:%ld,gloffy:%ld,gloffz:%ld,"
         "ldssize:0x%lx,pdssize:0x%lx,pdsbase:0x%lx,knlbase:0x%lx,currwgid:%lx",
         num_warp,num_thread,num_workgroup,
         num_workgroup_x,num_workgroup_y,num_workgroup_z,
         num_thread_per_wg_x,num_thread_per_wg_y,num_thread_per_wg_z,
+        threadID_globaloffset_x,threadID_globaloffset_y,threadID_globaloffset_z,
         ldssize,pdssize,pdsbase,knlbase,currwgid);
           //    sprintf(log_name, "object_%ld.riscv.log", currwgid);
   //    log_path = log_name;

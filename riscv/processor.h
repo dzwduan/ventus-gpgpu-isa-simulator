@@ -69,6 +69,9 @@ class warp_schedule_t
     size_t numt_per_wg_x;
     size_t numt_per_wg_y;
     size_t numt_per_wg_z;
+    uint64_t threadID_globaloffset_x;
+    uint64_t threadID_globaloffset_y;
+    uint64_t threadID_globaloffset_z;
     std::vector<int> barriers;
     bool is_all_true;
     int barrier_counter;

@@ -1345,6 +1345,7 @@ void warp_schedule_t::parse_gpgpuarch_string(const char *s)
   uint64_t currwgid=0;
   size_t kernel_size[3]={0,1,1};
   size_t wg_size[3];
+  uint64_t tID_globaloffset[3];
 
   while (pos < len) {
     std::string attr = get_string_token(str, ':', pos);
@@ -1369,6 +1370,12 @@ void warp_schedule_t::parse_gpgpuarch_string(const char *s)
       wg_size[1] = get_int_token(str, ',', pos);
     else if (attr == "wgsizez")
       wg_size[2] = get_int_token(str, ',', pos);
+    else if (attr == "gloffx")
+      tID_globaloffset[0] = get_int_token(str, ',', pos);
+    else if (attr == "gloffy")
+      tID_globaloffset[1] = get_int_token(str, ',', pos);
+    else if (attr == "gloffz")
+      tID_globaloffset[2] = get_int_token(str, ',', pos);
     else if (attr == "ldssize")
       ldssize = get_long_token(str,',',pos);
     else if (attr == "ldsbase")
@@ -1408,6 +1415,9 @@ void warp_schedule_t::parse_gpgpuarch_string(const char *s)
   numt_per_wg_x = wg_size[0];
   numt_per_wg_y = wg_size[1];
   numt_per_wg_z = wg_size[2];
+  threadID_globaloffset_x = tID_globaloffset[0];
+  threadID_globaloffset_y = tID_globaloffset[1];
+  threadID_globaloffset_z = tID_globaloffset[2];
 
   if(!(kernel_size[0]*kernel_size[1]*kernel_size[2]==numwg)){
     bad_gpgpuarch_string(s, "kernel size doesn't match total wg size");
