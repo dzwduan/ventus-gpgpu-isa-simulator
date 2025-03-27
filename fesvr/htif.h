@@ -27,6 +27,10 @@ class htif_t : public chunked_memif_t
   bool done();
   int exit_code();
 
+  // difftest
+  void prepare_to_step_difftest();
+  int step_difftest();
+
   virtual memif_t& memif() { return mem; }
 
   template<typename T> inline T from_target(target_endian<T> n) const
@@ -109,6 +113,11 @@ class htif_t : public chunked_memif_t
 
   friend class memif_t;
   friend class syscall_t;
+  
+  // difftest
+  std::queue<reg_t> fromhost_queue_for_difftest;
+  std::function<void(reg_t)> fromhost_callback_for_difftest;
+  uint64_t tohost;
 };
 
 /* Alignment guide for emulator.cc options:

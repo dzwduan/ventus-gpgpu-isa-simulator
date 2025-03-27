@@ -1,6 +1,11 @@
 #ifndef DIFFTRACE_H_
 #define DIFFTRACE_H_
 
+#include <cmath>
+#include <cstdint>
+#include <cstdio>
+#include <queue>
+
 class store_trace_t
 {
   public:

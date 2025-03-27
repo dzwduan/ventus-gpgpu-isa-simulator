@@ -7,3 +7,6 @@ autom4te.cache/
 .gdb_history
 .vscode/
 gpgpu-testcase/build
+.cache/
+.clang-format
+compile_commands.json

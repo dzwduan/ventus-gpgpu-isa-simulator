@@ -1,0 +1,18 @@
+difftest_subproject_deps = \
+  fesvr \
+  riscv \
+  disasm \
+  customext \
+  fdt \
+  softfloat \
+  spike_main \
+  spike_dasm \
+
+difftest_hdrs = \
+  difftest.h \
+  difftrace.h \
+
+difftest_srcs = \
+	difftest.cc \
+
+difftest_install_shared_lib = yes

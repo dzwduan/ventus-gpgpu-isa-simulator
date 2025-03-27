@@ -77,6 +77,10 @@ public:
     current_proc= current_proc==0?reach_end.size()-1:current_proc-1;
   }
   void append_reach_end() override{reach_end.push_back(0);current_proc=0;}
+  
+  // difftest
+  void prepare_to_step_difftest();
+  int step_difftest(size_t n); // step through simulation
 
 private:
   warp_schedule_t w;
@@ -111,13 +115,7 @@ private:
   std::ostream sout_; // used for socket and terminal interface
 
   processor_t* get_core(const std::string& i);
-#if defined(DIFFTEST)
-public:
-#endif
   void step(size_t n); // step through simulation
-#if defined(DIFFTEST)
-private:
-#endif
   static const size_t INTERLEAVE = 1;
   static const size_t INSNS_PER_RTC_TICK = 100; // 10 MHz clock for 1 BIPS core
   static const size_t CPU_HZ = 1000000000; // 1GHz CPU

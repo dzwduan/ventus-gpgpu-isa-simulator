@@ -287,6 +287,28 @@ int sim_t::run()
   return htif_t::run();
 }
 
+void sim_t::prepare_to_step_difftest() {
+  // 内容来自 sim_t::run()，为调用 idle() 步进做准备，以供 difftest REF 步进
+  host = context_t::current();
+  target.init(sim_thread_main, this);
+  htif_t::prepare_to_step_difftest();
+}
+
+int sim_t::step_difftest(size_t n) {
+  for (size_t i = 0; i < n; i++) {
+    if (!done()) {
+      if (htif_t::step_difftest()) // 如果 difftest 在本次 step 中结束
+      {
+        stop();
+        return exit_code();
+      }
+    } else {
+      return exit_code();
+    }
+  }
+  return 0;
+}
+
 void sim_t::step(size_t n)
 {
   for (size_t i = 0, steps = 0; i < n; i += steps)
