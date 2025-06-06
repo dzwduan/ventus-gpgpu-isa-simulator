@@ -1413,8 +1413,7 @@ reg_t index[P.VU.vlmax]; \
     P.VU.vstart->write(i); \
     for (reg_t fn = 0; fn < nf; ++fn) { \
       reg_t baseAddr = index[i] + insn.v_simm11(); \
-      reg_t baseBias = P.get_csr(CSR_GDS); \
-      P.VU.elt<uint32_t>(0,vd, vreg_inx, true) = MMU.load_##BODY(baseAddr + baseBias);\
+      P.VU.elt<uint32_t>(0,vd, vreg_inx, true) = MMU.load_##BODY(baseAddr + fn * 8);\
     } \
   } \
   P.VU.vstart->write(0);
