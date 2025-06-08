@@ -1410,7 +1410,7 @@ reg_t index[P.VU.vlmax]; \
     VI_STRIP(i); \
     P.VU.vstart->write(i); \
     for (reg_t fn = 0; fn < nf; ++fn) { \
-      reg_t baseAddr = index[i] + insn.v_simm11(); \
+      reg_t baseAddr = index[i] + insn.i_imm(); \
       P.VU.elt<uint32_t>(0,vd, vreg_inx, true) = MMU.load_##BODY(baseAddr);\
     } \
   } \
@@ -1428,7 +1428,7 @@ reg_t index[P.VU.vlmax]; \
     VI_STRIP(i); \
     P.VU.vstart->write(i); \
     for (reg_t fn = 0; fn < nf; ++fn) { \
-      reg_t baseAddr = index[i] + insn.v_simm11(); \
+      reg_t baseAddr = index[i] + insn.i_imm(); \
       reg_t baseBias = 0x70000000; \
       P.VU.elt<uint32_t>(0,vd, vreg_inx, true) = MMU.load_##BODY(baseAddr+baseBias);\
     } \

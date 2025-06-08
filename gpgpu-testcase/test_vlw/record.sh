@@ -1,9 +1,9 @@
-# if ! ${VENTUS_INSTALL_PREFIX}/bin/clang -S -fno-inline -O3 -cl-std=CL2.0 -target riscv32 -mcpu=ventus-gpgpu test.cl -emit-llvm -o test.ll ; then
-#     exit -1
-# fi
-# if ! ${VENTUS_INSTALL_PREFIX}/bin/clang -S -fno-inline -O3 -cl-std=CL2.0 -target riscv32 -mcpu=ventus-gpgpu test.ll -o test.s ; then
-#     exit -1
-# fi
+if ! ${VENTUS_INSTALL_PREFIX}/bin/clang -S -fno-inline -O3 -cl-std=CL2.0 -target riscv32 -mcpu=ventus-gpgpu test.cl -emit-llvm -o test.ll ; then
+    exit -1
+fi
+if ! ${VENTUS_INSTALL_PREFIX}/bin/clang -S -fno-inline -O3 -cl-std=CL2.0 -target riscv32 -mcpu=ventus-gpgpu test.ll -o test.s ; then
+    exit -1
+fi
 if ! ${VENTUS_INSTALL_PREFIX}/bin/clang -c -fno-inline -O3 -cl-std=CL2.0 -target riscv32 -mcpu=ventus-gpgpu test.s -o test.o ; then
     exit -1
 fi
