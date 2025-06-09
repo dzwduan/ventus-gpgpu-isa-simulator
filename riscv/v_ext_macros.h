@@ -1379,13 +1379,15 @@ reg_t index[P.VU.vlmax]; \
     VI12_ELEMENT_SKIP(i); \
     VI_STRIP(i); \
     P.VU.vstart->write(i); \
-    reg_t baseAddr = index[i] + insn.v_simm11(); \
     for (reg_t fn = 0; fn < nf; ++fn) { \
       if (index[i] >= 0x90000000 && index[i] <= 0xffffffff) { \
+        reg_t baseAddr = index[i] + insn.i_imm(); \
         P.VU.elt<uint32_t>(0, vd, vreg_inx, true) = MMU.load_##BODY(baseAddr); \
       } else if (index[i] >= 0x70000000 && index[i] <= 0x80000000) { \
+        reg_t baseAddr = index[i] + insn.i_imm(); \
         P.VU.elt<uint32_t>(0, vd, vreg_inx, true) = MMU.load_##BODY(baseAddr); \
       } else if ((index[i] & 0xff000000) == 0) { \
+        reg_t baseAddr = index[i] + insn.v_simm11(); \
         reg_t aligned = baseAddr & ~3; \
         reg_t offset = baseAddr & 3; \
         reg_t baseTid = P.get_csr(CSR_TID); \
@@ -1430,7 +1432,7 @@ reg_t index[P.VU.vlmax]; \
     for (reg_t fn = 0; fn < nf; ++fn) { \
       reg_t baseAddr = index[i] + insn.i_imm(); \
       reg_t baseBias = 0x70000000; \
-      P.VU.elt<uint32_t>(0,vd, vreg_inx, true) = MMU.load_##BODY(baseAddr+baseBias);\
+      P.VU.elt<uint32_t>(0,vd, vreg_inx, true) = MMU.load_##BODY(baseAddr);\
     } \
   } \
   P.VU.vstart->write(0);
