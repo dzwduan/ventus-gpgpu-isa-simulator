@@ -1,0 +1,1 @@
+VI_GPU_ST_LOCAL_INDEX(true, uint32)

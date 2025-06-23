@@ -1,18 +1,16 @@
 #pragma OPENCL EXTENSION cl_khr_fp64 : enable
-
-void foo(__private int *f, __private int t);
+void foo(int *out, int *in, int tid, __private int *num);
 
 __kernel void test(__global int *out, __global int *in)
 {
     int tid = get_global_id(0);
-    __private int tmp;
-    foo(&tmp, in[tid]);
-    out[tid] = tmp;
+    int num=in[tid];
+    foo(out, in, tid, &num);
 }
 
-void foo(__private int *f, __private int t) {
-    if (t > 0)
-        *f = 1;
+void foo(int *out, int *in, int tid, __private int *num) {
+    if (*num > 0)
+        out[tid] = 1;
     else
-        *f = -1;
+        out[tid] = -1;
 }

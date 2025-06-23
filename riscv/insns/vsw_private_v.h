@@ -1,0 +1,1 @@
+VI_GPU_ST_PRIVATE_INDEX(true, uint32)

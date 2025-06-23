@@ -70,109 +70,111 @@ Disassembly of section .text:
 800000b4: 23 a0 62 00  	sw	t1, 0(t0)
 
 800000b8 <test>:
-800000b8: 13 01 01 01  	addi	sp, sp, 16
-800000bc: 13 02 82 00  	addi	tp, tp, 8
+800000b8: 13 01 c1 00  	addi	sp, sp, 12
+800000bc: 13 02 42 00  	addi	tp, tp, 4
 800000c0: 0b 20 10 00  	regext	zero, zero, 1
 800000c4: 57 40 02 5e  	vmv.v.x	v0, tp
-800000c8: 23 28 11 fe  	sw	ra, -16(sp)
-800000cc: 0b 20 80 04  	regext	zero, zero, 72
-800000d0: 2b 2e 10 fe  	vsw.v	v1, -4(v0)
-800000d4: 0b 20 80 04  	regext	zero, zero, 72
-800000d8: 2b 2c 20 fe  	vsw.v	v2, -8(v0)
-800000dc: 83 22 05 00  	lw	t0, 0(a0)
-800000e0: 23 2e 51 fe  	sw	t0, -4(sp)
-800000e4: 83 22 45 00  	lw	t0, 4(a0)
-800000e8: 23 2c 51 fe  	sw	t0, -8(sp)
-800000ec: 83 22 85 00  	lw	t0, 8(a0)
-800000f0: 23 2a 51 fe  	sw	t0, -12(sp)
-800000f4: 57 40 00 5e  	vmv.v.x	v0, zero
-800000f8: ef 00 80 08  	jal	0x80000180 <_Z13get_global_idj>
-800000fc: 0b 20 10 00  	regext	zero, zero, 1
-80000100: 57 31 01 96  	vsll.vi	v2, v0, 2
-80000104: 03 23 41 ff  	lw	t1, -12(sp)
-80000108: 83 22 81 ff  	lw	t0, -8(sp)
-8000010c: 0b 20 00 04  	regext	zero, zero, 64
-80000110: 57 c0 22 02  	vadd.vx	v0, v2, t0
-80000114: f6 20 00 00  	<unknown>
-80000118: 0b 20 10 04  	regext	zero, zero, 65
-8000011c: d7 40 23 02  	vadd.vx	v1, v2, t1
-80000120: 0b 20 00 04  	regext	zero, zero, 64
-80000124: 57 40 10 02  	vadd.vx	v0, v1, zero
-80000128: ef 00 40 04  	jal	0x8000016c <foo>
-8000012c: 0b 20 80 00  	regext	zero, zero, 8
-80000130: 7a a0 00 00  	<unknown>
-80000134: 83 22 c1 ff  	lw	t0, -4(sp)
-80000138: 0b 20 00 04  	regext	zero, zero, 64
-8000013c: d7 c0 22 02  	vadd.vx	v1, v2, t0
-80000140: 7b e0 00 00  	vsw12.v	v0, 0(v1)
-80000144: 83 20 01 ff  	lw	ra, -16(sp)
-80000148: 0b 20 90 00  	regext	zero, zero, 9
-8000014c: fe 20 c0 ff  	<unknown>
-80000150: 0b 20 90 00  	regext	zero, zero, 9
-80000154: 7e 21 80 ff  	<unknown>
-80000158: 13 01 01 ff  	addi	sp, sp, -16
-8000015c: 13 02 82 ff  	addi	tp, tp, -8
-80000160: 0b 20 10 00  	regext	zero, zero, 1
-80000164: 57 40 02 5e  	vmv.v.x	v0, tp
-80000168: 67 80 00 00  	ret
+800000c8: 23 2a 11 fe  	sw	ra, -12(sp)
+800000cc: 83 22 05 00  	lw	t0, 0(a0)
+800000d0: 23 2e 51 fe  	sw	t0, -4(sp)
+800000d4: 83 22 45 00  	lw	t0, 4(a0)
+800000d8: 23 2c 51 fe  	sw	t0, -8(sp)
+800000dc: 57 40 00 5e  	vmv.v.x	v0, zero
+800000e0: ef 00 c0 06  	jal	0x8000014c <_Z13get_global_idj>
+800000e4: 57 41 00 02  	vadd.vx	v2, v0, zero
+800000e8: 57 30 01 96  	vsll.vi	v0, v0, 2
+800000ec: 83 22 81 ff  	lw	t0, -8(sp)
+800000f0: 57 c0 02 02  	vadd.vx	v0, v0, t0
+800000f4: 76 20 00 00  	vlw_global.v	v0, 0(v0)
+800000f8: 0b 20 80 00  	regext	zero, zero, 8
+800000fc: 7e 6e 00 fe  	vsw_private.v	v0, -4(v0)
+80000100: 93 02 c2 ff  	addi	t0, tp, -4
+80000104: 03 23 c1 ff  	lw	t1, -4(sp)
+80000108: 57 40 03 5e  	vmv.v.x	v0, t1
+8000010c: d7 c1 02 5e  	vmv.v.x	v3, t0
+80000110: ef 00 c0 01  	jal	0x8000012c <foo>
+80000114: 83 20 41 ff  	lw	ra, -12(sp)
+80000118: 13 01 41 ff  	addi	sp, sp, -12
+8000011c: 13 02 c2 ff  	addi	tp, tp, -4
+80000120: 0b 20 10 00  	regext	zero, zero, 1
+80000124: 57 40 02 5e  	vmv.v.x	v0, tp
+80000128: 67 80 00 00  	ret
 
-8000016c <foo>:
-8000016c: d7 30 10 76  	vmsle.vi	v1, v1, 0
-80000170: d7 30 10 0e  	vrsub.vi	v1, v1, 0
-80000174: d7 b0 10 2a  	vor.vi	v1, v1, 1
-80000178: 7b 60 10 00  	vsw12.v	v1, 0(v0)
-8000017c: 67 80 00 00  	ret
+8000012c <foo>:
+8000012c: fe a0 01 00  	vlw_private.v	v1, 0(v3)
+80000130: d7 30 10 76  	vmsle.vi	v1, v1, 0
+80000134: d7 30 10 0e  	vrsub.vi	v1, v1, 0
+80000138: d7 b0 10 2a  	vor.vi	v1, v1, 1
+8000013c: 57 31 21 96  	vsll.vi	v2, v2, 2
+80000140: 57 00 01 02  	vadd.vv	v0, v0, v2
+80000144: 7b 60 10 00  	vsw12.v	v1, 0(v0)
+80000148: 67 80 00 00  	ret
 
-80000180 <_Z13get_global_idj>:
-80000180: 13 01 41 00  	addi	sp, sp, 4
-80000184: 23 2e 11 fe  	sw	ra, -4(sp)
-80000188: 93 02 20 00  	li	t0, 2
-8000018c: d7 c0 02 5e  	vmv.v.x	v1, t0
+8000014c <_Z13get_global_idj>:
+8000014c: 13 01 41 00  	addi	sp, sp, 4
+80000150: 23 2e 11 fe  	sw	ra, -4(sp)
+80000154: d7 40 00 02  	vadd.vx	v1, v0, zero
+80000158: 93 02 20 00  	li	t0, 2
+8000015c: 57 c0 02 5e  	vmv.v.x	v0, t0
 
-80000190 <.Lpcrel_hi0>:
+80000160 <.Lpcrel_hi0>:
+80000160: 17 03 00 00  	auipc	t1, 0
+80000164: 5b 30 43 05  	setrpc	zero, t1, 84
+80000168: 5b 04 10 04  	vbeq	v1, v0, 0x800001b0 <.LBB0_5>
+8000016c: 6f 00 40 00  	j	0x80000170 <.LBB0_1>
+
+80000170 <.LBB0_1>:
+80000170: 93 02 10 00  	li	t0, 1
+80000174: 57 c0 02 5e  	vmv.v.x	v0, t0
+
+80000178 <.Lpcrel_hi1>:
+80000178: 17 03 00 00  	auipc	t1, 0
+8000017c: 5b 30 c3 03  	setrpc	zero, t1, 60
+80000180: 5b 04 10 02  	vbeq	v1, v0, 0x800001a8 <.LBB0_4>
+80000184: 6f 00 40 00  	j	0x80000188 <.LBB0_2>
+
+80000188 <.LBB0_2>:
+80000188: 57 41 00 5e  	vmv.v.x	v2, zero
+8000018c: 57 40 00 5e  	vmv.v.x	v0, zero
+
+80000190 <.Lpcrel_hi2>:
 80000190: 17 03 00 00  	auipc	t1, 0
-80000194: 5b 30 43 05  	setrpc	zero, t1, 84
-80000198: 5b 84 00 04  	vbeq	v0, v1, 0x800001e0 <.LBB0_6>
-8000019c: 6f 00 40 00  	j	0x800001a0 <.LBB0_1>
+80000194: 5b 30 43 02  	setrpc	zero, t1, 36
+80000198: 5b 1e 11 00  	vbne	v1, v2, 0x800001b4 <.LBB0_6>
+8000019c: 6f 00 40 00  	j	0x800001a0 <.LBB0_3>
 
-800001a0 <.LBB0_1>:
-800001a0: 93 02 10 00  	li	t0, 1
-800001a4: d7 c0 02 5e  	vmv.v.x	v1, t0
+800001a0 <.LBB0_3>:
+800001a0: ef 00 00 10  	jal	0x800002a0 <__builtin_riscv_global_id_x>
+800001a4: 6f 00 00 01  	j	0x800001b4 <.LBB0_6>
 
-800001a8 <.Lpcrel_hi1>:
-800001a8: 17 03 00 00  	auipc	t1, 0
-800001ac: 5b 30 c3 03  	setrpc	zero, t1, 60
-800001b0: 5b 84 00 02  	vbeq	v0, v1, 0x800001d8 <.LBB0_5>
-800001b4: 6f 00 40 00  	j	0x800001b8 <.LBB0_2>
+800001a8 <.LBB0_4>:
+800001a8: ef 00 c0 12  	jal	0x800002d4 <__builtin_riscv_global_id_y>
+800001ac: 6f 00 80 00  	j	0x800001b4 <.LBB0_6>
 
-800001b8 <.LBB0_2>:
-800001b8: d7 40 00 5e  	vmv.v.x	v1, zero
+800001b0 <.LBB0_5>:
+800001b0: ef 00 40 15  	jal	0x80000304 <__builtin_riscv_global_id_z>
 
-800001bc <.Lpcrel_hi2>:
-800001bc: 17 03 00 00  	auipc	t1, 0
-800001c0: 5b 30 83 02  	setrpc	zero, t1, 40
-800001c4: 5b 86 00 00  	vbeq	v0, v1, 0x800001d0 <.LBB0_4>
-800001c8: 57 40 00 5e  	vmv.v.x	v0, zero
-800001cc: 6f 00 80 01  	j	0x800001e4 <.LBB0_7>
+800001b4 <.LBB0_6>:
+800001b4: 5b 20 00 00  	join	zero, zero, 0
+800001b8: 83 20 c1 ff  	lw	ra, -4(sp)
+800001bc: 13 01 c1 ff  	addi	sp, sp, -4
+800001c0: 67 80 00 00  	ret
 
-800001d0 <.LBB0_4>:
-800001d0: ef 00 00 10  	jal	0x800002d0 <__builtin_riscv_global_id_x>
-800001d4: 6f 00 00 01  	j	0x800001e4 <.LBB0_7>
-
-800001d8 <.LBB0_5>:
-800001d8: ef 00 c0 12  	jal	0x80000304 <__builtin_riscv_global_id_y>
-800001dc: 6f 00 80 00  	j	0x800001e4 <.LBB0_7>
-
-800001e0 <.LBB0_6>:
-800001e0: ef 00 40 15  	jal	0x80000334 <__builtin_riscv_global_id_z>
-
-800001e4 <.LBB0_7>:
-800001e4: 5b 20 00 00  	join	zero, zero, 0
+800001c4 <__builtin_riscv_workitem_id_x>:
+800001c4: 13 01 41 00  	addi	sp, sp, 4
+800001c8: 23 2e 11 fe  	sw	ra, -4(sp)
+800001cc: 73 25 30 80  	csrr	a0, 2051
+800001d0: 83 22 85 00  	lw	t0, 8(a0)
+800001d4: 73 23 00 80  	csrr	t1, 2048
+800001d8: 57 a1 08 52  	vid.v	v2
+800001dc: 57 40 23 02  	vadd.vx	v0, v2, t1
+800001e0: 03 2e 85 01  	lw	t3, 24(a0)
+800001e4: 57 60 0e 8a  	vremu.vx	v0, v0, t3
 800001e8: 83 20 c1 ff  	lw	ra, -4(sp)
 800001ec: 13 01 c1 ff  	addi	sp, sp, -4
 800001f0: 67 80 00 00  	ret
 
-800001f4 <__builtin_riscv_workitem_id_x>:
+800001f4 <__builtin_riscv_workitem_id_y>:
 800001f4: 13 01 41 00  	addi	sp, sp, 4
 800001f8: 23 2e 11 fe  	sw	ra, -4(sp)
 800001fc: 73 25 30 80  	csrr	a0, 2051
@@ -181,106 +183,92 @@ Disassembly of section .text:
 80000208: 57 a1 08 52  	vid.v	v2
 8000020c: 57 40 23 02  	vadd.vx	v0, v2, t1
 80000210: 03 2e 85 01  	lw	t3, 24(a0)
-80000214: 57 60 0e 8a  	vremu.vx	v0, v0, t3
-80000218: 83 20 c1 ff  	lw	ra, -4(sp)
-8000021c: 13 01 c1 ff  	addi	sp, sp, -4
-80000220: 67 80 00 00  	ret
+80000214: 83 2e c5 01  	lw	t4, 28(a0)
+80000218: 33 8f ce 03  	mul	t5, t4, t3
+8000021c: 57 60 0f 8a  	vremu.vx	v0, v0, t5
+80000220: 57 60 0e 82  	vdivu.vx	v0, v0, t3
+80000224: d7 c0 0e 5e  	vmv.v.x	v1, t4
 
-80000224 <__builtin_riscv_workitem_id_y>:
-80000224: 13 01 41 00  	addi	sp, sp, 4
-80000228: 23 2e 11 fe  	sw	ra, -4(sp)
-8000022c: 73 25 30 80  	csrr	a0, 2051
-80000230: 83 22 85 00  	lw	t0, 8(a0)
-80000234: 73 23 00 80  	csrr	t1, 2048
-80000238: 57 a1 08 52  	vid.v	v2
-8000023c: 57 40 23 02  	vadd.vx	v0, v2, t1
-80000240: 03 2e 85 01  	lw	t3, 24(a0)
-80000244: 83 2e c5 01  	lw	t4, 28(a0)
-80000248: 33 8f ce 03  	mul	t5, t4, t3
-8000024c: 57 60 0f 8a  	vremu.vx	v0, v0, t5
-80000250: 57 60 0e 82  	vdivu.vx	v0, v0, t3
-80000254: d7 c0 0e 5e  	vmv.v.x	v1, t4
+80000228 <.hi2>:
+80000228: 17 03 00 00  	auipc	t1, 0
+8000022c: 5b 30 43 01  	setrpc	zero, t1, 20
+80000230: 5b c6 00 00  	vblt	v0, v1, 0x8000023c <.end2>
+80000234: 13 0f f0 ff  	li	t5, -1
+80000238: 57 40 1f 02  	vadd.vx	v0, v1, t5
 
-80000258 <.hi2>:
-80000258: 17 03 00 00  	auipc	t1, 0
-8000025c: 5b 30 43 01  	setrpc	zero, t1, 20
-80000260: 5b c6 00 00  	vblt	v0, v1, 0x8000026c <.end2>
-80000264: 13 0f f0 ff  	li	t5, -1
-80000268: 57 40 1f 02  	vadd.vx	v0, v1, t5
+8000023c <.end2>:
+8000023c: 5b 20 00 00  	join	zero, zero, 0
+80000240: 83 20 c1 ff  	lw	ra, -4(sp)
+80000244: 13 01 c1 ff  	addi	sp, sp, -4
+80000248: 67 80 00 00  	ret
 
-8000026c <.end2>:
-8000026c: 5b 20 00 00  	join	zero, zero, 0
-80000270: 83 20 c1 ff  	lw	ra, -4(sp)
-80000274: 13 01 c1 ff  	addi	sp, sp, -4
-80000278: 67 80 00 00  	ret
+8000024c <__builtin_riscv_workitem_id_z>:
+8000024c: 13 01 41 00  	addi	sp, sp, 4
+80000250: 23 2e 11 fe  	sw	ra, -4(sp)
+80000254: 73 25 30 80  	csrr	a0, 2051
+80000258: 73 23 00 80  	csrr	t1, 2048
+8000025c: 57 a1 08 52  	vid.v	v2
+80000260: 57 40 23 02  	vadd.vx	v0, v2, t1
+80000264: 03 2e 85 01  	lw	t3, 24(a0)
+80000268: 83 2e c5 01  	lw	t4, 28(a0)
+8000026c: 03 2f 05 02  	lw	t5, 32(a0)
+80000270: b3 8e ce 03  	mul	t4, t4, t3
+80000274: 57 e0 0e 82  	vdivu.vx	v0, v0, t4
+80000278: d7 40 0f 5e  	vmv.v.x	v1, t5
 
-8000027c <__builtin_riscv_workitem_id_z>:
-8000027c: 13 01 41 00  	addi	sp, sp, 4
-80000280: 23 2e 11 fe  	sw	ra, -4(sp)
-80000284: 73 25 30 80  	csrr	a0, 2051
-80000288: 73 23 00 80  	csrr	t1, 2048
-8000028c: 57 a1 08 52  	vid.v	v2
-80000290: 57 40 23 02  	vadd.vx	v0, v2, t1
-80000294: 03 2e 85 01  	lw	t3, 24(a0)
-80000298: 83 2e c5 01  	lw	t4, 28(a0)
-8000029c: 03 2f 05 02  	lw	t5, 32(a0)
-800002a0: b3 8e ce 03  	mul	t4, t4, t3
-800002a4: 57 e0 0e 82  	vdivu.vx	v0, v0, t4
-800002a8: d7 40 0f 5e  	vmv.v.x	v1, t5
+8000027c <.hi3>:
+8000027c: 17 03 00 00  	auipc	t1, 0
+80000280: 5b 30 43 01  	setrpc	zero, t1, 20
+80000284: 5b c6 00 00  	vblt	v0, v1, 0x80000290 <.end3>
+80000288: 13 0f f0 ff  	li	t5, -1
+8000028c: 57 40 1f 02  	vadd.vx	v0, v1, t5
 
-800002ac <.hi3>:
-800002ac: 17 03 00 00  	auipc	t1, 0
-800002b0: 5b 30 43 01  	setrpc	zero, t1, 20
-800002b4: 5b c6 00 00  	vblt	v0, v1, 0x800002c0 <.end3>
-800002b8: 13 0f f0 ff  	li	t5, -1
-800002bc: 57 40 1f 02  	vadd.vx	v0, v1, t5
+80000290 <.end3>:
+80000290: 5b 20 00 00  	join	zero, zero, 0
+80000294: 83 20 c1 ff  	lw	ra, -4(sp)
+80000298: 13 01 c1 ff  	addi	sp, sp, -4
+8000029c: 67 80 00 00  	ret
 
-800002c0 <.end3>:
-800002c0: 5b 20 00 00  	join	zero, zero, 0
-800002c4: 83 20 c1 ff  	lw	ra, -4(sp)
-800002c8: 13 01 c1 ff  	addi	sp, sp, -4
-800002cc: 67 80 00 00  	ret
+800002a0 <__builtin_riscv_global_id_x>:
+800002a0: 13 01 41 00  	addi	sp, sp, 4
+800002a4: 23 2e 11 fe  	sw	ra, -4(sp)
+800002a8: ef f0 df f1  	jal	0x800001c4 <__builtin_riscv_workitem_id_x>
+800002ac: 73 25 30 80  	csrr	a0, 2051
+800002b0: 73 23 80 80  	csrr	t1, 2056
+800002b4: 03 2e 85 01  	lw	t3, 24(a0)
+800002b8: 83 2e 45 02  	lw	t4, 36(a0)
+800002bc: b3 0f c3 03  	mul	t6, t1, t3
+800002c0: b3 8f df 01  	add	t6, t6, t4
+800002c4: 57 c0 0f 02  	vadd.vx	v0, v0, t6
+800002c8: 83 20 c1 ff  	lw	ra, -4(sp)
+800002cc: 13 01 c1 ff  	addi	sp, sp, -4
+800002d0: 67 80 00 00  	ret
 
-800002d0 <__builtin_riscv_global_id_x>:
-800002d0: 13 01 41 00  	addi	sp, sp, 4
-800002d4: 23 2e 11 fe  	sw	ra, -4(sp)
-800002d8: ef f0 df f1  	jal	0x800001f4 <__builtin_riscv_workitem_id_x>
-800002dc: 73 25 30 80  	csrr	a0, 2051
-800002e0: 73 23 80 80  	csrr	t1, 2056
-800002e4: 03 2e 85 01  	lw	t3, 24(a0)
-800002e8: 83 2e 45 02  	lw	t4, 36(a0)
-800002ec: b3 0f c3 03  	mul	t6, t1, t3
-800002f0: b3 8f df 01  	add	t6, t6, t4
-800002f4: 57 c0 0f 02  	vadd.vx	v0, v0, t6
+800002d4 <__builtin_riscv_global_id_y>:
+800002d4: 13 01 41 00  	addi	sp, sp, 4
+800002d8: 23 2e 11 fe  	sw	ra, -4(sp)
+800002dc: ef f0 9f f1  	jal	0x800001f4 <__builtin_riscv_workitem_id_y>
+800002e0: 73 23 90 80  	csrr	t1, 2057
+800002e4: 83 23 c5 01  	lw	t2, 28(a0)
+800002e8: 83 2e 85 02  	lw	t4, 40(a0)
+800002ec: 33 0e 73 02  	mul	t3, t1, t2
+800002f0: 33 0e de 01  	add	t3, t3, t4
+800002f4: 57 40 0e 02  	vadd.vx	v0, v0, t3
 800002f8: 83 20 c1 ff  	lw	ra, -4(sp)
 800002fc: 13 01 c1 ff  	addi	sp, sp, -4
 80000300: 67 80 00 00  	ret
 
-80000304 <__builtin_riscv_global_id_y>:
+80000304 <__builtin_riscv_global_id_z>:
 80000304: 13 01 41 00  	addi	sp, sp, 4
 80000308: 23 2e 11 fe  	sw	ra, -4(sp)
-8000030c: ef f0 9f f1  	jal	0x80000224 <__builtin_riscv_workitem_id_y>
-80000310: 73 23 90 80  	csrr	t1, 2057
-80000314: 83 23 c5 01  	lw	t2, 28(a0)
-80000318: 83 2e 85 02  	lw	t4, 40(a0)
-8000031c: 33 0e 73 02  	mul	t3, t1, t2
-80000320: 33 0e de 01  	add	t3, t3, t4
-80000324: 57 40 0e 02  	vadd.vx	v0, v0, t3
-80000328: 83 20 c1 ff  	lw	ra, -4(sp)
-8000032c: 13 01 c1 ff  	addi	sp, sp, -4
-80000330: 67 80 00 00  	ret
-
-80000334 <__builtin_riscv_global_id_z>:
-80000334: 13 01 41 00  	addi	sp, sp, 4
-80000338: 23 2e 11 fe  	sw	ra, -4(sp)
-8000033c: ef f0 1f f4  	jal	0x8000027c <__builtin_riscv_workitem_id_z>
-80000340: 73 25 30 80  	csrr	a0, 2051
-80000344: 73 23 a0 80  	csrr	t1, 2058
-80000348: 83 23 05 02  	lw	t2, 32(a0)
-8000034c: 03 2e c5 02  	lw	t3, 44(a0)
-80000350: b3 83 63 02  	mul	t2, t2, t1
-80000354: b3 83 c3 01  	add	t2, t2, t3
-80000358: 57 c0 03 02  	vadd.vx	v0, v0, t2
-8000035c: 83 20 c1 ff  	lw	ra, -4(sp)
-80000360: 13 01 c1 ff  	addi	sp, sp, -4
-80000364: 67 80 00 00  	ret
+8000030c: ef f0 1f f4  	jal	0x8000024c <__builtin_riscv_workitem_id_z>
+80000310: 73 25 30 80  	csrr	a0, 2051
+80000314: 73 23 a0 80  	csrr	t1, 2058
+80000318: 83 23 05 02  	lw	t2, 32(a0)
+8000031c: 03 2e c5 02  	lw	t3, 44(a0)
+80000320: b3 83 63 02  	mul	t2, t2, t1
+80000324: b3 83 c3 01  	add	t2, t2, t3
+80000328: 57 c0 03 02  	vadd.vx	v0, v0, t2
+8000032c: 83 20 c1 ff  	lw	ra, -4(sp)
+80000330: 13 01 c1 ff  	addi	sp, sp, -4
+80000334: 67 80 00 00  	ret

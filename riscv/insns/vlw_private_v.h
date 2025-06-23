@@ -1,1 +1,1 @@
-VI_GPU_LD_PRIVATE_INDEX(true,int32);
+VI_GPU_LD_PRIVATE_INDEX(true, int32)

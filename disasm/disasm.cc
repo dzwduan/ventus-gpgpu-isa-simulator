@@ -113,6 +113,12 @@ struct : public arg_t {
 
 struct : public arg_t {
   std::string to_string(insn_t insn) const {
+    return std::to_string((int)insn.v_s_simm12());
+  }
+} store_imm12;
+
+struct : public arg_t {
+  std::string to_string(insn_t insn) const {
     std::stringstream s;
     s << " "<< ((insn.i_imm() >>9) & 7) << " " <<  ((insn.i_imm()>>6)&7)<< " " <<((insn.i_imm() >>3 )&7) << " "<<(insn.i_imm() & 7)<< " ";
     return s.str();
@@ -138,6 +144,12 @@ struct : public arg_t {
     return std::to_string((int)insn.v_s_simm11());
   }
 } v_s_simm11;
+
+struct : public arg_t {
+  std::string to_string(insn_t insn) const {
+    return std::to_string((int)insn.v_s_simm12());
+  }
+} v_s_simm12;
 
 struct : public arg_t {
   std::string to_string(insn_t insn) const {
@@ -858,32 +870,38 @@ void disassembler_t::add_instructions(const isa_parser_t* isa)
   DEFINE_RTYPE(endprg);
   DEFINE_VVI12_TYPE(vadd12_vi);
   DEFINE_VVI12_TYPE(vsub12_vi);
-  DEFINE_VL_TYPE(vlw12_v);
-  DEFINE_VL_TYPE(vlh12_v);
-  DEFINE_VL_TYPE(vlb12_v);
-  DEFINE_VL_TYPE(vlhu12_v);
-  DEFINE_VL_TYPE(vlbu12_v);
-  DEFINE_VL_TYPE(vlw_global_v);
-  DEFINE_VL_TYPE(vlh_global_v);
-  DEFINE_VL_TYPE(vlb_global_v);
-  DEFINE_VL_TYPE(vlhu_global_v);
-  DEFINE_VL_TYPE(vlbu_global_v);
-  DEFINE_VL_TYPE(vlw_local_v);
-  DEFINE_VL_TYPE(vlh_local_v);
-  DEFINE_VL_TYPE(vlb_local_v);
-  DEFINE_VL_TYPE(vlhu_local_v);
-  DEFINE_VL_TYPE(vlbu_local_v);
-  DEFINE_VL_TYPE(vlw_private_v);
-  DEFINE_VL_TYPE(vlh_private_v);
-  DEFINE_VL_TYPE(vlb_private_v);
-  DEFINE_VL_TYPE(vlhu_private_v);
-  DEFINE_VL_TYPE(vlbu_private_v);
+  DEFINE_VL12_TYPE(vlw12_v);
+  DEFINE_VL12_TYPE(vlh12_v);
+  DEFINE_VL12_TYPE(vlb12_v);
+  DEFINE_VL12_TYPE(vlhu12_v);
+  DEFINE_VL12_TYPE(vlbu12_v);
   DEFINE_VS12_TYPE(vsw12_v);
   DEFINE_VS12_TYPE(vsh12_v);
   DEFINE_VS12_TYPE(vsb12_v);
-  DEFINE_VS_TYPE(vsw_v);
-  DEFINE_VS_TYPE(vsh_v);
-  DEFINE_VS_TYPE(vsb_v);
+  DEFINE_VL12_TYPE(vlw_global_v);
+  DEFINE_VL12_TYPE(vlh_global_v);
+  DEFINE_VL12_TYPE(vlb_global_v);
+  DEFINE_VL12_TYPE(vlhu_global_v);
+  DEFINE_VL12_TYPE(vlbu_global_v);
+  DEFINE_VS12_TYPE(vsw_global_v);
+  DEFINE_VS12_TYPE(vsh_global_v);
+  DEFINE_VS12_TYPE(vsb_global_v);
+  DEFINE_VL12_TYPE(vlw_local_v);
+  DEFINE_VL12_TYPE(vlh_local_v);
+  DEFINE_VL12_TYPE(vlb_local_v);
+  DEFINE_VL12_TYPE(vlhu_local_v);
+  DEFINE_VL12_TYPE(vlbu_local_v);
+  DEFINE_VS12_TYPE(vsw_local_v);
+  DEFINE_VS12_TYPE(vsh_local_v);
+  DEFINE_VS12_TYPE(vsb_local_v);
+  DEFINE_VL12_TYPE(vlw_private_v);
+  DEFINE_VL12_TYPE(vlh_private_v);
+  DEFINE_VL12_TYPE(vlb_private_v);
+  DEFINE_VL12_TYPE(vlhu_private_v);
+  DEFINE_VL12_TYPE(vlbu_private_v);
+  DEFINE_VS12_TYPE(vsw_private_v);
+  DEFINE_VS12_TYPE(vsh_private_v);
+  DEFINE_VS12_TYPE(vsb_private_v);
   DEFINE_REGEXT_TYPE(regext);
   DEFINE_REGEXTI_TYPE(regexti);
 

@@ -66,7 +66,7 @@ const int NCSR = 4096;
 #define FSR_AEXC (FSR_NVA | FSR_OFA | FSR_UFA | FSR_DZA | FSR_NXA)
 
 #define insn_length(x) \
-  ((((x) & 0x7f) >= 0x76) && (((x) & 0x7f) <= 0x7e) ? 4 : \
+  ((((x) & 0x7f) == 0x76) || (((x) & 0x7f) == 0x7a) || (((x) & 0x7f) == 0x7b) || (((x) & 0x7f) == 0x7e) ? 4 : \
    ((x) & 0x03) < 0x03 ? 2 : \
    ((x) & 0x1f) < 0x1f ? 4 : \
    ((x) & 0x3f) < 0x3f ? 6 : \
@@ -139,7 +139,7 @@ public:
   uint64_t v_simm12() {return xs(20,12);} // for inst vls12 series
   uint64_t v_simm11() {return xs(20,11);} // for inst vlw, vlh, vlb
   uint64_t v_s_simm11() { return x(7, 5) + (xs(25, 6) << 5); } // for inst vsw, vsh, vsb
-
+  uint64_t v_s_simm12() { return x(7, 5) + (xs(25, 7) << 5); } // for inst vsw12 series
   uint64_t p_imm2() { return x(20, 2); }
   uint64_t p_imm3() { return x(20, 3); }
   uint64_t p_imm4() { return x(20, 4); }

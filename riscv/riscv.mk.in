@@ -907,19 +907,25 @@ riscv_insn_ext_v_gpgpu = \
 	vlhu_global_v \
 	vlb_global_v \
 	vlbu_global_v \
+	vsw_global_v \
+	vsh_global_v \
+	vsb_global_v \
 	vlw_local_v \
 	vlh_local_v \
 	vlhu_local_v \
 	vlb_local_v \
 	vlbu_local_v \
+	vsw_local_v \
+	vsh_local_v \
+	vsb_local_v \
 	vlw_private_v \
 	vlh_private_v \
 	vlhu_private_v \
 	vlb_private_v \
 	vlbu_private_v \
-	vsw_v \
-	vsh_v \
-	vsb_v \
+	vsw_private_v \
+	vsh_private_v \
+	vsb_private_v \
 	vbeq \
 	vbne \
 	vblt \
