@@ -1,0 +1,1 @@
+VI_VFP_VV64_LOOP(vd = f16_add(vs1, vs2);)

@@ -1510,12 +1510,19 @@ void disassembler_t::add_instructions(const isa_parser_t* isa)
     //0b00_0000
     DEFINE_VECTOR_VV(vftta_vv);
     DISASM_OPIV_VXI_INSN(vadd,         1, v);
+    DEFINE_VECTOR_VV(vadd64_vv);
+    DEFINE_VECTOR_VX(vadd64_vx);
     DISASM_OPIV_VX__INSN(vsub,         1);
+    DISASM_OPIV_VX__INSN(vsub64,       1);
     DISASM_OPIV__XI_INSN(vrsub,        1);
     DISASM_OPIV_VX__INSN(vminu,        0);
+    DISASM_OPIV_VX__INSN(vminu64,      0);
     DISASM_OPIV_VX__INSN(vmin,         1);
+    DISASM_OPIV_VX__INSN(vmin64,       1);
     DISASM_OPIV_VX__INSN(vmaxu,        1);
+    DISASM_OPIV_VX__INSN(vmaxu64,      1);
     DISASM_OPIV_VX__INSN(vmax,         0);
+    DISASM_OPIV_VX__INSN(vmax64,       0);
     DISASM_OPIV_VXI_INSN(vand,         1, v);
     DISASM_OPIV_VXI_INSN(vor,          1, v);
     DISASM_OPIV_VXI_INSN(vxor,         1, v);
@@ -1630,6 +1637,7 @@ void disassembler_t::add_instructions(const isa_parser_t* isa)
     DISASM_OPIV_VX__INSN(vrem,      1);
     DISASM_OPIV_VX__INSN(vmulhu,    0);
     DISASM_OPIV_VX__INSN(vmul,      1);
+    DISASM_OPIV_VX__INSN(vmul64,    1);
     DISASM_OPIV_VX__INSN(vmulhsu,   0);
     DISASM_OPIV_VX__INSN(vmulh,     1);
     DISASM_OPIV_VX__INSN(vmadd,     1);
@@ -1691,12 +1699,16 @@ void disassembler_t::add_instructions(const isa_parser_t* isa)
     //0b00_0000
     //DISASM_OPIV_V___INSN(vftta);
     DISASM_OPIV_VF_INSN(vfadd);
+    DISASM_OPIV_VF_INSN(vfadd64);
     DISASM_OPIV_S__INSN(vfredusum);
     DISASM_OPIV_VF_INSN(vfsub);
+    DISASM_OPIV_VF_INSN(vfsub64);
     DISASM_OPIV_S__INSN(vfredosum);
     DISASM_OPIV_VF_INSN(vfmin);
+    DISASM_OPIV_VF_INSN(vfmin64);
     DISASM_OPIV_S__INSN(vfredmin);
     DISASM_OPIV_VF_INSN(vfmax);
+    DISASM_OPIV_VF_INSN(vfmax64);
     DISASM_OPIV_S__INSN(vfredmax);
     DISASM_OPIV_VF_INSN(vfsgnj);
     DISASM_OPIV_VF_INSN(vfsgnjn);
@@ -1736,6 +1748,7 @@ void disassembler_t::add_instructions(const isa_parser_t* isa)
     DEFINE_VECTOR_V(vfclass_v);
 
     DISASM_OPIV_VF_INSN(vfmul);
+    DISASM_OPIV_VF_INSN(vfmul64);
     DISASM_OPIV__F_INSN(vfrsub);
     DISASM_OPIV_VF_INSN(vfmadd);
     DISASM_OPIV_VF_INSN(vfnmadd);

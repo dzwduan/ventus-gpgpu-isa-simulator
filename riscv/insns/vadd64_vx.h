@@ -1,0 +1,1 @@
+VI_VX64_LOOP(vd = rs1 + vs2;)

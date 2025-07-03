@@ -42,6 +42,15 @@
     } \
   }
 
+#define VI64_LOOP_ELEMENT_SKIP(BODY) \
+  if (GPGPU_ENABLE) { \
+    uint64_t mask = P.gpgpu_unit.simt_stack.get_mask(); \
+    bool skip = ((mask >> i) & 0x1) == 0; \
+    if(skip) { \
+      continue; \
+    } \
+  }
+
 #define VI_ELEMENT_SKIP(inx) \
   if (inx >= vl) { \
     continue; \
@@ -253,6 +262,23 @@ static inline bool is_aligned(const unsigned val, const unsigned pos)
   reg_t rs2_num = insn.rs2(); \
   for (reg_t i = P.VU.vstart->read(); i < vl; ++i) {
 
+#define VI64_GENERAL_LOOP_BASE \
+  require(P.VU.vsew >= e8 && P.VU.vsew <= e64); \
+  require_vector(true); \
+  reg_t vl = P.VU.vl->read(); \
+  reg_t re = insn.bits() >> 57; \
+  reg_t rs2_num = (insn.bits() >> 49) & 0xFF; \
+  reg_t rs1_num = (insn.bits() >> 41) & 0xFF; \
+  reg_t OMOD = (insn.bits() >> 39) & 0x3; \
+  reg_t OPSEL = (insn.bits() >> 36) & 0x7; \
+  reg_t REVERSE = (insn.bits() >> 28) & 0xFF; \
+  reg_t rd_num = (insn.bits() >> 20) & 0xFF; \
+  reg_t ABS = (insn.bits() >> 17) & 0x7; \
+  reg_t NEG = (insn.bits() >> 14) & 0x7; \
+  reg_t VSSIZE = (insn.bits() >> 9) & 0x3; \
+  reg_t VDSIZE = (insn.bits() >> 7) & 0x3; \
+  for (reg_t i = P.VU.vstart->read(); i < vl; ++i) { \
+
 #define VI_LOOP_BASE \
     VI_GENERAL_LOOP_BASE \
     VI_LOOP_ELEMENT_SKIP();
@@ -260,6 +286,10 @@ static inline bool is_aligned(const unsigned val, const unsigned pos)
 #define VI12_LOOP_BASE \
     VI_GENERAL_LOOP_BASE \
     VI12_LOOP_ELEMENT_SKIP();
+  
+#define VI64_LOOP_BASE \
+    VI64_GENERAL_LOOP_BASE \
+    VI64_LOOP_ELEMENT_SKIP();
 
 #define VI_LOOP_END \
   } \
@@ -738,6 +768,26 @@ static inline bool is_aligned(const unsigned val, const unsigned pos)
   } \
   VI_LOOP_END 
 
+#define VI_VV64_U_CASE(sewtype, BODY) \
+  { \
+    type_usew_t<sewtype>::type vs1 = P.VU.elt<type_usew_t<sewtype>::type>(1, rs1_num, i); \
+    type_usew_t<sewtype>::type vs2 = P.VU.elt<type_usew_t<sewtype>::type>(2, rs2_num, i); \
+    type_usew_t<sewtype>::type &vd  = P.VU.elt<type_usew_t<sewtype>::type>(0, rd_num, i, true); \
+    if (NEG & 0x1) vs1 = -vs1; \
+    if (NEG & 0x2) vs2 = -vs2; \
+    if (ABS & 0x1) vs1 = std::abs(vs1); \
+    if (ABS & 0x2) vs2 = std::abs(vs2); \
+    BODY \
+    if (OMOD == 1) vd *= 2; \
+    else if (OMOD == 2) vd *= 4; \
+    else if (OMOD == 3) vd /= 2; \
+  }
+
+#define VI_VV64_ULOOP(BODY) \
+  VI64_LOOP_BASE \
+  VI_VV64_U_CASE(e16, BODY); \
+  VI_LOOP_END
+
 #define VI_VV_LOOP(BODY) \
   VI_CHECK_SSS(true) \
   VI_LOOP_BASE \
@@ -755,6 +805,27 @@ static inline bool is_aligned(const unsigned val, const unsigned pos)
     BODY; \
   } \
   VI_LOOP_END 
+
+#define VI_VV64_CASE(sewtype, BODY) \
+  { \
+    type_sew_t<sewtype>::type vs1 = P.VU.elt<type_sew_t<sewtype>::type>(1, rs1_num, i); \
+    type_sew_t<sewtype>::type vs2 = P.VU.elt<type_sew_t<sewtype>::type>(2, rs2_num, i); \
+    type_sew_t<sewtype>::type &vd  = P.VU.elt<type_sew_t<sewtype>::type>(0, rd_num, i, true); \
+    if (NEG & 0x1) vs1 = -vs1; \
+    if (NEG & 0x2) vs2 = -vs2; \
+    if (ABS & 0x1) vs1 = std::abs(vs1); \
+    if (ABS & 0x2) vs2 = std::abs(vs2); \
+    BODY \
+    if (OMOD == 1) vd *= 2; \
+    else if (OMOD == 2) vd *= 4; \
+    else if (OMOD == 3) vd /= 2; \
+  }
+
+#define VI_VV64_LOOP(BODY) \
+  VI64_LOOP_BASE \
+  VI_VV64_CASE(e16, BODY); \
+  VI_LOOP_END
+    
 
 #define VI_VX_ULOOP(BODY) \
   VI_CHECK_SSS(false) \
@@ -774,6 +845,26 @@ static inline bool is_aligned(const unsigned val, const unsigned pos)
   } \
   VI_LOOP_END 
 
+#define VI_VX64_U_CASE(sewtype, BODY) \
+  { \
+    type_usew_t<sewtype>::type rs1 = (type_usew_t<sewtype>::type)READ_REG(rs1_num); \
+    type_usew_t<sewtype>::type vs2 = P.VU.elt<type_usew_t<sewtype>::type>(2, rs2_num, i); \
+    type_usew_t<sewtype>::type &vd  = P.VU.elt<type_usew_t<sewtype>::type>(0, rd_num, i, true); \
+    if (NEG & 0x1) rs1 = -rs1; \
+    if (NEG & 0x2) vs2 = -vs2; \
+    if (ABS & 0x1) rs1 = std::abs(rs1); \
+    if (ABS & 0x2) vs2 = std::abs(vs2); \
+    BODY \
+    if (OMOD == 1) vd *= 2; \
+    else if (OMOD == 2) vd *= 4; \
+    else if (OMOD == 3) vd /= 2; \
+  }
+
+#define VI_VX64_ULOOP(BODY) \
+  VI64_LOOP_BASE \
+  VI_VX64_U_CASE(e16, BODY); \
+  VI_LOOP_END
+
 #define VI_VX_LOOP(BODY) \
   VI_CHECK_SSS(false) \
   VI_LOOP_BASE \
@@ -791,6 +882,26 @@ static inline bool is_aligned(const unsigned val, const unsigned pos)
     BODY; \
   } \
   VI_LOOP_END 
+
+#define VI_VX64_CASE(sewtype, BODY) \
+  { \
+    type_sew_t<sewtype>::type rs1 = (type_sew_t<sewtype>::type)READ_REG(rs1_num); \
+    type_sew_t<sewtype>::type vs2 = P.VU.elt<type_sew_t<sewtype>::type>(2, rs2_num, i); \
+    type_sew_t<sewtype>::type &vd  = P.VU.elt<type_sew_t<sewtype>::type>(0, rd_num, i, true); \
+    if (NEG & 0x1) rs1 = -rs1; \
+    if (NEG & 0x2) vs2 = -vs2; \
+    if (ABS & 0x1) rs1 = std::abs(rs1); \
+    if (ABS & 0x2) vs2 = std::abs(vs2); \
+    BODY \
+    if (OMOD == 1) vd *= 2; \
+    else if (OMOD == 2) vd *= 4; \
+    else if (OMOD == 3) vd /= 2; \
+  }
+
+#define VI_VX64_LOOP(BODY) \
+  VI64_LOOP_BASE \
+  VI_VX64_CASE(e16, BODY); \
+  VI_LOOP_END
 
 #define VI_VI_ULOOP(BODY) \
   VI_CHECK_SSS(false) \
@@ -1721,10 +1832,36 @@ reg_t index[P.VU.vlmax]; \
   reg_t rs2_num = insn.rs2(); \
   softfloat_roundingMode = STATE.frm->read();
 
+#define VI_VFP64_COMMON \
+  require_fp; \
+  require((P.VU.vsew == e16 && p->extension_enabled(EXT_ZFH)) || \
+    (P.VU.vsew == e32 && p->extension_enabled('F')) || \
+    (P.VU.vsew == e64 && p->extension_enabled('D'))); \
+  require_vector(true); \
+  require(STATE.frm->read() < 0x5); \
+  reg_t vl = P.VU.vl->read(); \
+  reg_t re = insn.bits() >> 57; \
+  reg_t rs2_num = (insn.bits() >> 49) & 0xFF; \
+  reg_t rs1_num = (insn.bits() >> 41) & 0xFF; \
+  reg_t OMOD = (insn.bits() >> 39) & 0x3; \
+  reg_t OPSEL = (insn.bits() >> 36) & 0x7; \
+  reg_t REVERSE = (insn.bits() >> 28) & 0xFF; \
+  reg_t rd_num = (insn.bits() >> 20) & 0xFF; \
+  reg_t ABS = (insn.bits() >> 17) & 0x7; \
+  reg_t NEG = (insn.bits() >> 14) & 0x7; \
+  reg_t VSSIZE = (insn.bits() >> 9) & 0x3; \
+  reg_t VDSIZE = (insn.bits() >> 7) & 0x3; \
+  softfloat_roundingMode = STATE.frm->read(); \
+
 #define VI_VFP_LOOP_BASE \
   VI_VFP_COMMON \
   for (reg_t i = P.VU.vstart->read(); i < vl; ++i) { \
     VI_LOOP_ELEMENT_SKIP();
+
+#define VI_VFP64_LOOP_BASE \
+  VI_VFP64_COMMON \
+  for (reg_t i = P.VU.vstart->read(); i < vl; ++i) { \
+    VI64_LOOP_ELEMENT_SKIP();
 
 #define VI_VFP_LOOP_CMP_BASE \
   VI_VFP_COMMON \
@@ -1832,6 +1969,33 @@ reg_t index[P.VU.vlmax]; \
       require(0); \
       break; \
   }; \
+  DEBUG_RVV_FP_VV; \
+  VI_VFP_LOOP_END
+
+#define VFP_VV64_CASE(width, BODY) \
+{ \
+  float##width##_t vs1 = P.VU.elt<float##width##_t>(1, rs1_num, i); \
+  float##width##_t vs2 = P.VU.elt<float##width##_t>(2, rs2_num, i); \
+  float##width##_t &vd = P.VU.elt<float##width##_t>(0, rd_num, i, true); \
+  float16_t minus_one = {0xBC00}; \
+  if(NEG & 0x1) vs1 = f16_mul(vs1, minus_one); \
+  if(NEG & 0x2) vs2 = f16_mul(vs2, minus_one); \
+  float16_t zero = {0x0000}; \
+  if(ABS & 0x1) vs1 = f16_lt(vs1, zero) ? f16_mul(vs1, minus_one) : vs1; \
+  if(ABS & 0x2) vs2 = f16_lt(vs2, zero) ? f16_mul(vs2, minus_one) : vs2; \
+  BODY \
+  float16_t two = {0x4000}; \
+  float16_t four = {0x4400}; \
+  if(OMOD == 0) vd = vd; \
+  else if(OMOD == 1) vd = f16_mul(vd, two); \
+  else if(OMOD == 2) vd = f16_mul(vd, four); \
+  else if(OMOD == 3) vd = f16_div(vd, two); \
+}
+
+#define VI_VFP_VV64_LOOP(BODY) \
+  VI_VFP64_LOOP_BASE \
+  VFP_VV64_CASE(16, BODY); \
+  set_fp_exceptions; \
   DEBUG_RVV_FP_VV; \
   VI_VFP_LOOP_END
 
@@ -1951,6 +2115,33 @@ reg_t index[P.VU.vlmax]; \
       require(0); \
       break; \
   }; \
+  DEBUG_RVV_FP_VF; \
+  VI_VFP_LOOP_END
+
+#define VFP_VF64_CASE(width, BODY) \
+{ \
+  float##width##_t rs1 = f##width(READ_FREG(rs1_num)); \
+  float##width##_t vs2 = P.VU.elt<float##width##_t>(2, rs2_num, i); \
+  float##width##_t &vd = P.VU.elt<float##width##_t>(0, rd_num, i, true); \
+  float16_t minus_one = {0xBC00}; \
+  if(NEG & 0x1) rs1 = f16_mul(rs1, minus_one); \
+  if(NEG & 0x2) vs2 = f16_mul(vs2, minus_one); \
+  float16_t zero = {0x0000}; \
+  if(ABS & 0x1) rs1 = f16_lt(rs1, zero) ? f16_mul(rs1, minus_one) : rs1; \
+  if(ABS & 0x2) vs2 = f16_lt(vs2, zero) ? f16_mul(vs2, minus_one) : vs2; \
+  BODY \
+  float16_t two = {0x4000}; \
+  float16_t four = {0x4400}; \
+  if(OMOD == 0) vd = vd; \
+  else if(OMOD == 1) vd = f16_mul(vd, two); \
+  else if(OMOD == 2) vd = f16_mul(vd, four); \
+  else if(OMOD == 3) vd = f16_div(vd, two); \
+}
+
+#define VI_VFP_VF64_LOOP(BODY) \
+  VI_VFP64_LOOP_BASE \
+  VFP_VF64_CASE(16, BODY); \
+  set_fp_exceptions; \
   DEBUG_RVV_FP_VF; \
   VI_VFP_LOOP_END
 
