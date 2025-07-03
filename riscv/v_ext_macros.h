@@ -1381,6 +1381,7 @@ reg_t index[P.VU.vlmax]; \
     P.VU.vstart->write(i); \
     for (reg_t fn = 0; fn < nf; ++fn) { \
       reg_t baseAddr = index[i] + insn.i_imm(); \
+      fprintf(stderr,"[VI_GPU_LD_GLOBAL_INDEX] realAddr=%lx\n", realAddr); \
       P.VU.elt<uint32_t>(0,vd, vreg_inx, true) = MMU.load_##BODY(baseAddr + fn * 8);\
     } \
   } \
@@ -1399,6 +1400,7 @@ reg_t index[P.VU.vlmax]; \
     P.VU.vstart->write(i); \
     for (reg_t fn = 0; fn < nf; ++fn) { \
       reg_t baseAddr = index[i] + insn.i_imm(); \
+      fprintf(stderr,"[VI_GPU_LD_LOCAL_INDEX] realAddr=%lx\n", realAddr); \
       P.VU.elt<uint32_t>(0,vd, vreg_inx, true) = MMU.load_##BODY(baseAddr);\
     } \
   } \
@@ -1422,6 +1424,7 @@ reg_t index[P.VU.vlmax]; \
       reg_t thread_idx_in_warp = baseTid % P.get_csr(CSR_NUMT); \
       reg_t real_inx = thread_idx_in_warp + vreg_inx; \
       reg_t realAddr = P.get_csr(CSR_PDS) + baseBias + (real_inx << 2); \
+      fprintf(stderr,"[VI_GPU_LD_PRIVATE_INDEX] realAddr=%lx\n", realAddr); \
       P.VU.elt<uint32_t>(0,vd, vreg_inx, true) = MMU.load_##BODY(realAddr);\
     } \
   } \
@@ -1472,6 +1475,7 @@ reg_t index[P.VU.vlmax]; \
     P.VU.vstart->write(i); \
     for (reg_t fn = 0; fn < nf; ++fn) { \
       reg_t baseAddr = index[i] + insn.s_imm(); \
+      fprintf(stderr,"[VI_GPU_ST_GLOBAL_INDEX] realAddr=%lx\n", realAddr); \
       MMU.store_##BODY(baseAddr, P.VU.elt<uint32_t>(2, vs2, vreg_inx));\
     } \
   } \
@@ -1490,6 +1494,7 @@ reg_t index[P.VU.vlmax]; \
     P.VU.vstart->write(i); \
     for (reg_t fn = 0; fn < nf; ++fn) { \
       reg_t baseAddr = index[i] + insn.s_imm(); \
+      fprintf(stderr,"[VI_GPU_ST_LOCAL_INDEX] realAddr=%lx\n", realAddr); \
       MMU.store_##BODY(baseAddr, P.VU.elt<uint32_t>(2, vs2, vreg_inx));\
     } \
   } \
@@ -1513,6 +1518,7 @@ reg_t index[P.VU.vlmax]; \
       reg_t thread_idx_in_warp = baseTid % P.get_csr(CSR_NUMT); \
       reg_t real_inx = thread_idx_in_warp + vreg_inx; \
       reg_t realAddr = P.get_csr(CSR_PDS) + baseBias + (real_inx << 2); \
+      fprintf(stderr,"[VI_GPU_ST_PRIVATE_INDEX] realAddr=%lx\n", realAddr); \
       MMU.store_##BODY(realAddr, P.VU.elt<uint32_t>(2, vs2, vreg_inx)); \
     } \
   } \

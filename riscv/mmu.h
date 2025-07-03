@@ -72,6 +72,7 @@ public:
       store_uint8(addr + (target_big_endian? size-1-i : i), data >> (i * 8), actually_store);
 #else
     bool gva = ((proc) ? proc->state.v : false) || (RISCV_XLATE_VIRT & xlate_flags);
+    printf("debug misalign 002\n");
     throw trap_store_address_misaligned(gva, addr, 0, 0);
 #endif
   }
@@ -149,8 +150,13 @@ public:
   #define store_func(type, prefix, xlate_flags) \
     void prefix##_##type(reg_t addr, type##_t val, bool actually_store=true, bool require_alignment=false) { \
       if (unlikely(addr & (sizeof(type##_t)-1))) { \
+        fprintf(stderr,                                                                \
+          "[DBG] %s  addr=0x%016" PRIx64 "  size=%zu  val=0x%016" PRIx64              \
+          "  actually=%d  req_align=%d\n",                                             \
+          __func__, (uint64_t)addr, sizeof(type##_t), (uint64_t)val,                   \
+          actually_store, require_alignment);                                          \
         if (require_alignment) store_conditional_address_misaligned(addr); \
-        else return misaligned_store(addr, val, sizeof(type##_t), xlate_flags, actually_store); \
+        else { printf("debug misalign 001\n"); return misaligned_store(addr, val, sizeof(type##_t), xlate_flags, actually_store); }\
       } \
       reg_t vpn = addr >> PGSHIFT; \
       size_t size = sizeof(type##_t); \
@@ -180,6 +186,7 @@ public:
 
   // AMO/Zicbom faults should be reported as store faults
   #define convert_load_traps_to_store_traps(BODY) \
+    printf("debug misaligned, convert_load_traps_to_store_traps 001\n"); \
     try { \
       BODY \
     } catch (trap_load_address_misaligned& t) { \
@@ -197,6 +204,7 @@ public:
   #define amo_func(type) \
     template<typename op> \
     type##_t amo_##type(reg_t addr, op f) { \
+      printf("debug misaligned, convert_load_traps_to_store_traps 002\n"); \
       convert_load_traps_to_store_traps({ \
         store_##type(addr, 0, false, true); \
         auto lhs = load_##type(addr, true); \
@@ -247,6 +255,7 @@ public:
   }
 
   void clean_inval(reg_t addr, bool clean, bool inval) {
+    printf("debug misaligned, convert_load_traps_to_store_traps 002\n");
     convert_load_traps_to_store_traps({
       reg_t paddr = addr & ~(blocksz - 1);
       paddr = translate(paddr, blocksz, LOAD, 0);
