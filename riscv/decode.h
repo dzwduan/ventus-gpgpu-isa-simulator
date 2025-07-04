@@ -66,11 +66,11 @@ const int NCSR = 4096;
 #define FSR_AEXC (FSR_NVA | FSR_OFA | FSR_UFA | FSR_DZA | FSR_NXA)
 
 #define insn_length(x) \
-  ((((x) & 0x7f) == 0x76) || (((x) & 0x7f) == 0x7a) || (((x) & 0x7f) == 0x7b) || (((x) & 0x7f) == 0x7e) ? 4 : \
-   ((x) & 0x03) < 0x03 ? 2 : \
-   ((x) & 0x1f) < 0x1f ? 4 : \
-   ((x) & 0x3f) < 0x3f ? 6 : \
-   8)
+  ( (((x) & 0x7f) == 0x76 || ((x) & 0x7f) == 0x7a || \
+     ((x) & 0x7f) == 0x7b || ((x) & 0x7f) == 0x7e) ? 4 : \
+    (((x) & 0x1f) < 0x1f) ? 4 : \
+    (((x) & 0x3f) < 0x3f) ? 6 : \
+    8 )
 #define MAX_INSN_LENGTH 8
 #define PC_ALIGN 2
 

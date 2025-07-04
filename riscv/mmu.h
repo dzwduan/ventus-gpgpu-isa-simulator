@@ -150,13 +150,8 @@ public:
   #define store_func(type, prefix, xlate_flags) \
     void prefix##_##type(reg_t addr, type##_t val, bool actually_store=true, bool require_alignment=false) { \
       if (unlikely(addr & (sizeof(type##_t)-1))) { \
-        fprintf(stderr,                                                                \
-          "[DBG] %s  addr=0x%016" PRIx64 "  size=%zu  val=0x%016" PRIx64              \
-          "  actually=%d  req_align=%d\n",                                             \
-          __func__, (uint64_t)addr, sizeof(type##_t), (uint64_t)val,                   \
-          actually_store, require_alignment);                                          \
         if (require_alignment) store_conditional_address_misaligned(addr); \
-        else { printf("debug misalign 001\n"); return misaligned_store(addr, val, sizeof(type##_t), xlate_flags, actually_store); }\
+        else return misaligned_store(addr, val, sizeof(type##_t), xlate_flags, actually_store); \
       } \
       reg_t vpn = addr >> PGSHIFT; \
       size_t size = sizeof(type##_t); \
@@ -262,9 +257,8 @@ public:
       if (auto host_addr = sim->addr_to_mem(paddr)) {
         if (tracer.interested_in_range(paddr, paddr + PGSIZE, LOAD))
           tracer.clean_invalidate(paddr, blocksz, clean, inval);
-      } else {
+      } else
         throw trap_store_access_fault((proc) ? proc->state.v : false, addr, 0, 0);
-      }
     })
   }
 
@@ -326,7 +320,6 @@ public:
     auto tlb_entry = translate_insn_addr(addr);
     insn_bits_t insn = from_le(*(uint16_t*)(tlb_entry.host_offset + addr));
     int length = insn_length(insn);
-
     if (likely(length == 4)) {
       insn |= (insn_bits_t)from_le(*(const uint16_t*)translate_insn_addr_to_host(addr + 2)) << 16;
     } else if (length == 2) {

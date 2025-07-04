@@ -973,7 +973,11 @@ void processor_t::build_opcode_map()
 {
   struct cmp {
     bool operator()(const insn_desc_t& lhs, const insn_desc_t& rhs) {
-      if (lhs.match == rhs.match)
+      if (lhs.mask == 0x707f && rhs.mask != 0x707f)
+        return true;
+      if (rhs.mask == 0x707f && lhs.mask != 0x707f)
+        return false;
+      if (lhs.mask != rhs.mask)
         return lhs.mask > rhs.mask;
       return lhs.match > rhs.match;
     }
