@@ -924,29 +924,29 @@ riscv_insn_ext_v_gpgpu = \
 	vftta_vv \
 	vfexp_v \
 	vadd64_vv \
-	vfadd64_vv \
-	vadd64_vx \
-	vfadd64_vf \
 	vsub64_vv \
-	vfsub64_vv \
-	vsub64_vx \
-	vfsub64_vf \
-	vminu64_vv \
-	vfmin64_vv \
-	vminu64_vx \
-	vfmin64_vf \
 	vmin64_vv \
-	vmin64_vx \
-	vmaxu64_vv \
-	vfmax64_vv \
-	vmaxu64_vx \
-	vfmax64_vf \
 	vmax64_vv \
-	vmax64_vx \
-	vfmul64_vv \
-	vfmul64_vf \
 	vmul64_vv \
+	vminu64_vv \
+	vmaxu64_vv \
+	vadd64_vx \
+	vsub64_vx \
+	vmin64_vx \
+	vmax64_vx \
 	vmul64_vx \
+	vminu64_vx \
+	vmaxu64_vx \
+	vfadd64_vv \
+	vfsub64_vv \
+	vfmin64_vv \
+	vfmax64_vv \
+	vfmul64_vv \
+	vfadd64_vf \
+	vfsub64_vf \
+	vfmin64_vf \
+	vfmax64_vf \
+	vfmul64_vf \
 
 riscv_insn_ext_v = \
 	$(riscv_insn_ext_v_alu_fp) \

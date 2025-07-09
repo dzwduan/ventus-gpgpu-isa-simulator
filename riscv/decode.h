@@ -66,7 +66,7 @@ const int NCSR = 4096;
 #define FSR_AEXC (FSR_NVA | FSR_OFA | FSR_UFA | FSR_DZA | FSR_NXA)
 
 #define insn_length(x) \
-  (((x) & 0x03) == 0x00 ? 8 : \
+  (((x) & 0x7f) == 0x54 ? 8 : \
    ((x) & 0x03) < 0x03 ? 2 : \
    ((x) & 0x1f) < 0x1f ? 4 : \
    ((x) & 0x3f) < 0x3f ? 6 : \
@@ -251,7 +251,7 @@ inline uint32_t f32_into_x(float64_t f) { return static_cast<uint32_t>(f.v);}
 #define JUMP_TARGET (pc + insn.uj_imm())
 #define RM ({ int rm = insn.rm(); \
               if (rm == 7) rm = STATE.frm->read(); \
-              if (rm > 4) throw trap_illegal_instruction(insn.bits()); \
+              if (rm > 4) {fprintf(stderr, "Illegal rounding mode: %d\n", rm); throw trap_illegal_instruction(insn.bits());} \
               rm; })
 
 #define get_field(reg, mask) (((reg) & (decltype(reg))(mask)) / ((mask) & ~((mask) << 1)))

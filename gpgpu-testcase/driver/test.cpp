@@ -1,90 +1,99 @@
 #include "ventus.h"
 #include <iostream>
-#include <iomanip>
 #include <cstdint>
+#include <cstdio>
 using namespace std;
 
 #ifndef KERNEL_ADDRESS
-#define KERNEL_ADDRESS 0x800000b8 // 你的vadd64_vv函数所在PC地址
+#define KERNEL_ADDRESS  0x800000b8
 #endif
 
 struct meta_data {
-  uint64_t kernel_id;
-  uint64_t kernel_size[3];
-  uint64_t wf_size;
-  uint64_t wg_size;
-  uint64_t metaDataBaseAddr;
-  uint64_t ldsSize;
-  uint64_t pdsSize;
-  uint64_t sgprUsage;
-  uint64_t vgprUsage;
-  uint64_t pdsBaseAddr;
-  meta_data(uint64_t id, uint64_t sz[], uint64_t wf, uint64_t wg,
-            uint64_t meta, uint64_t lds, uint64_t pds,
-            uint64_t sgpr, uint64_t vgpr, uint64_t pdsb)
-      : kernel_id(id), wf_size(wf), wg_size(wg), metaDataBaseAddr(meta),
-        ldsSize(lds), pdsSize(pds), sgprUsage(sgpr), vgprUsage(vgpr),
-        pdsBaseAddr(pdsb) {
-    kernel_size[0] = sz[0];
-    kernel_size[1] = sz[1];
-    kernel_size[2] = sz[2];
-  }
+    uint64_t kernel_id;
+    uint64_t kernel_size[3];
+    uint64_t wf_size;
+    uint64_t wg_size;
+    uint64_t metaDataBaseAddr;
+    uint64_t ldsSize;
+    uint64_t pdsSize;
+    uint64_t sgprUsage;
+    uint64_t vgprUsage;
+    uint64_t pdsBaseAddr;
+
+    meta_data(uint64_t arg0, uint64_t arg1[], uint64_t arg2, uint64_t arg3, uint64_t arg4,
+              uint64_t arg5, uint64_t arg6, uint64_t arg7, uint64_t arg8, uint64_t arg9)
+        : kernel_id(arg0), wf_size(arg2), wg_size(arg3), metaDataBaseAddr(arg4),
+          ldsSize(arg5), pdsSize(arg6), sgprUsage(arg7), vgprUsage(arg8), pdsBaseAddr(arg9) {
+        kernel_size[0] = arg1[0];
+        kernel_size[1] = arg1[1];
+        kernel_size[2] = arg1[2];
+    }
 };
 
 int main() {
-  uint64_t num_warp = 4;
-  uint64_t num_thread = 16;
-  uint64_t num_workgroups[3] = {1, 1, 1};
-  uint64_t pdssize = 0x1000;
-  uint64_t pdsbase = 0x8a000000;
-  uint64_t knlbase = 0x90000000;
+    const int data_len = 16;
+    uint16_t data_a[data_len] = {
+        0x3C00, 0xBC00, 0x3800, 0xB800,
+        0x0000, 0x7BFF, 0x0400, 0x8400,
+        0x3C00, 0xC000, 0x3C00, 0x3400,
+        0xB400, 0x0280, 0x8280, 0x4200
+    };
 
-  meta_data meta(0, num_workgroups, num_thread, num_warp,
-                 knlbase, 0, pdssize, 32, 32, pdsbase);
+    uint16_t data_b = 0x4000;  // 2.0f
+    uint16_t data_c[data_len] = {0};
 
-  vt_device_h p = nullptr;
-  vt_dev_open(&p);
+    uint64_t vaddr_a, vaddr_b_scalar, vaddr_c, vaddr_meta, vaddr_argbuf, vaddr_print;
+    uint64_t size_print = 0x10000000;
 
-  int16_t in_a[16] = {1, 2, 3, 4, -1, -2, 32767, -32768, 10, 20, 30, -10, -20, 100, -100, 0};
-  int16_t in_b[16] = {10, 20, -3, 5, 1, -2, 1, 1, -10, -20, -30, 10, 20, -100, 100, 0};
-  int16_t out[16] = {};
+    vt_device_h p = nullptr;
+    vt_dev_open(&p);
 
-  uint64_t vaddr_a, vaddr_b, vaddr_out, vaddr_meta, vaddr_bufbase;
-  uint64_t size = 16 * sizeof(int16_t);
+    vt_buf_alloc(p, sizeof(data_a), &vaddr_a, 0, 0, 0);
+    vt_buf_alloc(p, sizeof(uint16_t), &vaddr_b_scalar, 0, 0, 0);  // only 1 scalar
+    vt_buf_alloc(p, sizeof(data_c), &vaddr_c, 0, 0, 0);
+    vt_buf_alloc(p, sizeof(uint32_t) * 14, &vaddr_meta, 0, 0, 0);
+    vt_buf_alloc(p, 3 * sizeof(uint32_t), &vaddr_argbuf, 0, 0, 0);
+    vt_buf_alloc(p, size_print, &vaddr_print, 0, 0, 0);
 
-  vt_buf_alloc(p, size, &vaddr_a, 0, 0, 0);
-  vt_buf_alloc(p, size, &vaddr_b, 0, 0, 0);
-  vt_buf_alloc(p, size, &vaddr_out, 0, 0, 0);
-  vt_buf_alloc(p, 64, &vaddr_meta, 0, 0, 0);
-  vt_buf_alloc(p, 16, &vaddr_bufbase, 0, 0, 0);
+    vt_copy_to_dev(p, vaddr_a, data_a, sizeof(data_a), 0, 0);
+    vt_copy_to_dev(p, vaddr_b_scalar, &data_b, sizeof(uint16_t), 0, 0);
 
-  vt_copy_to_dev(p, vaddr_a, in_a, size, 0, 0);
-  vt_copy_to_dev(p, vaddr_b, in_b, size, 0, 0);
+    uint64_t num_thread = data_len;
+    uint64_t num_warp = 4;
+    uint64_t num_workgroups[3] = {1, 1, 1};
+    uint64_t pdsbase = 0x8a000000;
 
-  meta.metaDataBaseAddr = vaddr_meta;
-  meta.pdsBaseAddr = pdsbase;
+    meta_data meta(KERNEL_ADDRESS, num_workgroups, num_thread, num_warp,
+                   vaddr_meta, 0x1000, 0x1000, 32, 32, pdsbase);
 
-  uint32_t meta_buf[14] = {};
-  meta_buf[0] = KERNEL_ADDRESS;
-  meta_buf[1] = (uint32_t)vaddr_bufbase;
-  meta_buf[2] = meta.kernel_size[0];
-  meta_buf[6] = num_thread;
-  meta_buf[12] = (uint32_t)vaddr_out;
-  meta_buf[13] = (uint32_t)size;
+    uint32_t data_meta[14] = {0};
+    data_meta[0]  = (uint32_t)meta.kernel_id;
+    data_meta[1]  = (uint32_t)vaddr_argbuf;
+    data_meta[2]  = (uint32_t)meta.kernel_size[0];
+    data_meta[6]  = (uint32_t)meta.wf_size;
+    data_meta[12] = (uint32_t)vaddr_print;
+    data_meta[13] = (uint32_t)size_print;
 
-  vt_copy_to_dev(p, vaddr_meta, meta_buf, sizeof(meta_buf), 0, 0);
-  uint32_t buf_base[2] = {(uint32_t)vaddr_a, (uint32_t)vaddr_b};
-  vt_copy_to_dev(p, vaddr_bufbase, buf_base, 8, 0, 0);
+    vt_copy_to_dev(p, vaddr_meta, data_meta, sizeof(data_meta), 0, 0);
 
-  vt_upload_kernel_file(p, (char *)"test.riscv", 0);
-  vt_start(p, &meta, 0);
-  cout << "Execution complete.\n";
+    uint32_t arg_buf[3] = {
+        (uint32_t)vaddr_a,
+        (uint32_t)vaddr_b_scalar,
+        (uint32_t)vaddr_c
+    };
+    vt_copy_to_dev(p, vaddr_argbuf, arg_buf, sizeof(arg_buf), 0, 0);
 
-  vt_copy_from_dev(p, vaddr_out, out, size, 0, 0);
+    vt_upload_kernel_file(p, "test.riscv", 0);
+    vt_start(p, &meta, 0);
 
-  for (int i = 0; i < 16; i++) {
-    cout << "out[" << i << "] = " << out[i] << endl;
-  }
+    vt_copy_from_dev(p, vaddr_c, data_c, sizeof(data_c), 0, 0);
 
-  return 0;
+    cout << "Result (vfadd.vx float16 bit patterns):" << endl;
+    for (int i = 0; i < data_len; i++) {
+        printf("res[%2d] = 0x%04x\n", i, data_c[i]);
+    }
+
+    vt_buf_free(p, 0, nullptr, 0, 0);
+    vt_dev_close(p);
+    return 0;
 }

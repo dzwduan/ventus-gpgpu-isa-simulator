@@ -932,23 +932,29 @@ reg_t illegal_instruction(processor_t* p, insn_t insn, reg_t pc)
 
 insn_func_t processor_t::decode_insn(insn_t insn)
 {
-  // look up opcode in hash table
   size_t idx = insn.bits() % OPCODE_CACHE_SIZE;
   insn_desc_t desc = opcode_cache[idx];
 
   bool rve = extension_enabled('E');
 
+  fprintf(stderr, "[decode_insn] insn=0x%016lx  idx=%lu  cached_match=0x%016lx\n",
+          (unsigned long)insn.bits(), idx, (unsigned long)desc.match);
+
   if (unlikely(insn.bits() != desc.match)) {
-    // fall back to linear search
+
     int cnt = 0;
     insn_desc_t* p = &instructions[0];
     while ((insn.bits() & p->mask) != p->match)
       p++, cnt++;
+
+    auto resolved_func = p->func(xlen, rve);
+    fprintf(stderr, "[decode_insn] matched entry after %d steps: match=0x%016lx mask=0x%016lx func=%p\n",
+            cnt, (unsigned long)p->match, (unsigned long)p->mask, (void*)resolved_func);
+
     desc = *p;
 
     if (p->mask != 0 && p > &instructions[0]) {
       if (p->match != (p - 1)->match && p->match != (p + 1)->match) {
-        // move to front of opcode list to reduce miss penalty
         while (--p >= &instructions[0])
           *(p + 1) = *p;
         instructions[0] = desc;
@@ -971,17 +977,28 @@ void processor_t::register_insn(insn_desc_t desc)
 
 void processor_t::build_opcode_map()
 {
+  FILE* fout = fopen("insn_dump.log", "w");
   struct cmp {
     bool operator()(const insn_desc_t& lhs, const insn_desc_t& rhs) {
-      if (lhs.match == rhs.match)
-        return lhs.mask > rhs.mask;
-      return lhs.match > rhs.match;
+      if (lhs.mask == rhs.mask)
+        return lhs.match > rhs.match;
+      return lhs.mask > rhs.mask;
     }
   };
   std::sort(instructions.begin(), instructions.end(), cmp());
 
+  for (size_t i = 0; i < instructions.size(); ++i) {
+    auto insn = instructions[i];
+    fprintf(fout, "[DUMP] idx=%03lu  match=0x%016lx  mask=0x%016lx  func=%p\n",
+            i, (unsigned long)insn.match,
+            (unsigned long)insn.mask,
+            (void*)insn.func(xlen, false));
+  }
+
   for (size_t i = 0; i < OPCODE_CACHE_SIZE; i++)
     opcode_cache[i] = insn_desc_t::illegal();
+
+  fclose(fout);
 }
 
 void processor_t::register_extension(extension_t* x)
