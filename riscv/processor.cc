@@ -937,9 +937,6 @@ insn_func_t processor_t::decode_insn(insn_t insn)
 
   bool rve = extension_enabled('E');
 
-  fprintf(stderr, "[decode_insn] insn=0x%016lx  idx=%lu  cached_match=0x%016lx\n",
-          (unsigned long)insn.bits(), idx, (unsigned long)desc.match);
-
   if (unlikely(insn.bits() != desc.match)) {
 
     int cnt = 0;
@@ -948,8 +945,6 @@ insn_func_t processor_t::decode_insn(insn_t insn)
       p++, cnt++;
 
     auto resolved_func = p->func(xlen, rve);
-    fprintf(stderr, "[decode_insn] matched entry after %d steps: match=0x%016lx mask=0x%016lx func=%p\n",
-            cnt, (unsigned long)p->match, (unsigned long)p->mask, (void*)resolved_func);
 
     desc = *p;
 

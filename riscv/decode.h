@@ -91,8 +91,11 @@ public:
   int64_t u_imm() { return xs(12, 20) << 12; }
   int64_t uj_imm() { return (x(21, 10) << 1) + (x(20, 1) << 11) + (x(12, 8) << 12) + (imm_sign() << 20); }
   uint64_t rd() { return x(7, 5); }
+  uint64_t rd_64() { return x(20, 8); }
   uint64_t rs1() { return x(15, 5); }
+  uint64_t rs1_64() { return x(41, 8); }
   uint64_t rs2() { return x(20, 5); }
+  uint64_t rs2_64() { return x(49, 8); }
   uint64_t rs3() { return x(27, 5); }
   uint64_t rm() { return x(12, 3); }
   uint64_t csr() { return x(20, 12); }

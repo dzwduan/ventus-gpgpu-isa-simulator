@@ -6,12 +6,13 @@ target triple = "riscv32"
 ; Function Attrs: convergent mustprogress nofree noinline norecurse nounwind willreturn memory(argmem: readwrite) vscale_range(1,2048)
 define dso_local ventus_kernel void @test(ptr addrspace(1) nocapture noundef readonly align 2 %0, ptr addrspace(1) nocapture noundef readonly align 2 %1, ptr addrspace(1) nocapture noundef writeonly align 2 %2) local_unnamed_addr #0 !kernel_arg_addr_space !5 !kernel_arg_access_qual !6 !kernel_arg_type !7 !kernel_arg_base_type !7 !kernel_arg_type_qual !8 {
   %4 = call i32 @_Z13get_global_idj(i32 noundef 0) #2
-  %5 = load i16, ptr addrspace(1) %1, align 2, !tbaa !9
-  %6 = getelementptr inbounds i16, ptr addrspace(1) %0, i32 %4
-  %7 = load i16, ptr addrspace(1) %6, align 2, !tbaa !9
-  %8 = mul i16 %7, %5
-  %9 = getelementptr inbounds i16, ptr addrspace(1) %2, i32 %4
-  store i16 %8, ptr addrspace(1) %9, align 2, !tbaa !9
+  %5 = getelementptr inbounds i16, ptr addrspace(1) %0, i32 %4
+  %6 = load i16, ptr addrspace(1) %5, align 2, !tbaa !9
+  %7 = getelementptr inbounds i16, ptr addrspace(1) %1, i32 %4
+  %8 = load i16, ptr addrspace(1) %7, align 2, !tbaa !9
+  %9 = sub i16 %6, %8
+  %10 = getelementptr inbounds i16, ptr addrspace(1) %2, i32 %4
+  store i16 %9, ptr addrspace(1) %10, align 2, !tbaa !9
   ret void
 }
 
@@ -33,7 +34,7 @@ attributes #2 = { convergent nounwind willreturn memory(none) }
 !4 = !{!"clang version 16.0.0 (https://github.com/THU-DSP-LAB/llvm-project.git fbabe9474711354ca53ba7ee71cb9a991bc85a15)"}
 !5 = !{i32 1, i32 1, i32 1}
 !6 = !{!"none", !"none", !"none"}
-!7 = !{!"ushort*", !"ushort*", !"ushort*"}
+!7 = !{!"short*", !"short*", !"short*"}
 !8 = !{!"", !"", !""}
 !9 = !{!10, !10, i64 0}
 !10 = !{!"short", !11, i64 0}

@@ -25,7 +25,7 @@ class arg_t
 class disasm_insn_t
 {
  public:
-  NOINLINE disasm_insn_t(const char* name_, uint32_t match, uint32_t mask,
+  NOINLINE disasm_insn_t(const char* name_, uint64_t match, uint64_t mask,
                          const std::vector<const arg_t*>& args)
     : match(match), mask(mask), args(args)
   {
@@ -68,12 +68,12 @@ class disasm_insn_t
     return s;
   }
 
-  uint32_t get_match() const { return match; }
-  uint32_t get_mask() const { return mask; }
+  uint64_t get_match() const { return match; }
+  uint64_t get_mask() const { return mask; }
 
  private:
-  uint32_t match;
-  uint32_t mask;
+  uint64_t match;
+  uint64_t mask;
   std::vector<const arg_t*> args;
   std::string name;
 };
@@ -90,17 +90,17 @@ class disassembler_t
   void add_insn(disasm_insn_t* insn);
 
  private:
-  static const int HASH_SIZE = 255;
+  static const int HASH_SIZE = 1023;
   std::vector<const disasm_insn_t*> chain[HASH_SIZE+1];
 
   void add_instructions(const isa_parser_t* isa);
 
   const disasm_insn_t* probe_once(insn_t insn, size_t idx) const;
 
-  static const unsigned int MASK1 = 0x7f;
-  static const unsigned int MASK2 = 0xe003;
+  static const uint64_t MASK1 = 0xfc0000000000387fULL;
+  static const uint64_t MASK2 = 0xe003;
 
-  static unsigned int hash(insn_bits_t insn, unsigned int mask)
+  static unsigned int hash(insn_bits_t insn, uint64_t mask)
   {
     return (insn & mask) % HASH_SIZE;
   }

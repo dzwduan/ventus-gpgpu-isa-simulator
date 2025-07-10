@@ -1,5 +1,4 @@
-__kernel void test(__global ushort* a, __global ushort* b, __global ushort* c) {
+__kernel void test(__global short* a, __global short* b, __global short* c) {
     int gid = get_global_id(0);
-    ushort vx = b[0];
-    c[gid] = a[gid] * vx;
+    c[gid] = a[gid] - b[gid];
 }

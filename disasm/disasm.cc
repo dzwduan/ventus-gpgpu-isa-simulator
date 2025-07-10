@@ -47,6 +47,12 @@ struct : public arg_t {
 
 struct : public arg_t {
   std::string to_string(insn_t insn) const {
+    return xpr_name[insn.rs1_64()];
+  }
+} xrs1_64;
+
+struct : public arg_t {
+  std::string to_string(insn_t insn) const {
     return xpr_name[insn.rs2()];
   }
 } xrs2;
@@ -68,6 +74,12 @@ struct : public arg_t {
     return fpr_name[insn.rs1()];
   }
 } frs1;
+
+struct : public arg_t {
+  std::string to_string(insn_t insn) const {
+    return fpr_name[insn.rs1_64()];
+  }
+} frs1_64;
 
 struct : public arg_t {
   std::string to_string(insn_t insn) const {
@@ -326,15 +338,33 @@ struct : public arg_t {
 
 struct : public arg_t {
   std::string to_string(insn_t insn) const {
+    return vr_name[insn.rd_64()];
+  }
+} vd_64;
+
+struct : public arg_t {
+  std::string to_string(insn_t insn) const {
     return vr_name[insn.rs1()];
   }
 } vs1;
 
 struct : public arg_t {
   std::string to_string(insn_t insn) const {
+    return vr_name[insn.rs1_64()];
+  }
+} vs1_64;
+
+struct : public arg_t {
+  std::string to_string(insn_t insn) const {
     return vr_name[insn.rs2()];
   }
 } vs2;
+
+struct : public arg_t {
+  std::string to_string(insn_t insn) const {
+    return vr_name[insn.rs2_64()];
+  }
+} vs2_64;
 
 struct : public arg_t {
   std::string to_string(insn_t insn) const {
@@ -618,6 +648,11 @@ static void NOINLINE add_vector_vv_insn(disassembler_t* d, const char* name, uin
   d->add_insn(new disasm_insn_t(name, match, mask, {&vd, &vs2, &vs1, opt, &vm}));
 }
 
+static void NOINLINE add_vector_vv64_insn(disassembler_t* d, const char* name, uint32_t match, uint32_t mask)
+{
+  d->add_insn(new disasm_insn_t(name, match, mask, {&vd_64, &vs2_64, &vs1_64, opt}));
+}
+
 static void NOINLINE add_vector_branch_insn(disassembler_t* d, const char*name, uint32_t match, uint32_t mask)
 {
   d->add_insn(new disasm_insn_t(name, match, mask, {&vs2, &vs1, &branch_target}));
@@ -668,9 +703,19 @@ static void NOINLINE add_vector_vx_insn(disassembler_t* d, const char* name, uin
   d->add_insn(new disasm_insn_t(name, match, mask, {&vd, &vs2, &xrs1, opt, &vm}));
 }
 
+static void NOINLINE add_vector_vx64_insn(disassembler_t* d, const char* name, uint32_t match, uint32_t mask)
+{
+  d->add_insn(new disasm_insn_t(name, match, mask, {&vd_64, &vs2_64, &xrs1_64, opt}));
+}
+
 static void NOINLINE add_vector_vf_insn(disassembler_t* d, const char* name, uint32_t match, uint32_t mask)
 {
   d->add_insn(new disasm_insn_t(name, match, mask, {&vd, &vs2, &frs1, opt, &vm}));
+}
+
+static void NOINLINE add_vector_vf64_insn(disassembler_t* d, const char* name, uint32_t match, uint32_t mask)
+{
+  d->add_insn(new disasm_insn_t(name, match, mask, {&vd_64, &vs2_64, &frs1_64, opt}));
 }
 
 static void NOINLINE add_vector_vi_insn(disassembler_t* d, const char* name, uint32_t match, uint32_t mask)
@@ -735,8 +780,8 @@ void disassembler_t::add_instructions(const isa_parser_t* isa)
   const uint32_t mask_width = 0x7Ul << 12;
 
   #define DECLARE_INSN(code, match, mask) \
-   const uint32_t match_##code = match; \
-   const uint32_t mask_##code = mask;
+   const uint64_t match_##code = match; \
+   const uint64_t mask_##code = mask;
   #include "encoding.h"
   #undef DECLARE_INSN
 
@@ -1371,6 +1416,31 @@ void disassembler_t::add_instructions(const isa_parser_t* isa)
     DISASM_INSN("vsetvli", vsetvli, 0, {&xrd, &xrs1, &v_vtype});
     DEFINE_RTYPE(vsetvl);
 
+    DISASM_INSN("vadd64.vv", vadd64_vv, 0, {&vd_64, &vs2_64, &vs1_64, opt});
+    DISASM_INSN("vsub64.vv", vsub64_vv, 0, {&vd_64, &vs2_64, &vs1_64, opt});
+    DISASM_INSN("vmin64.vv", vmin64_vv, 0, {&vd_64, &vs2_64, &vs1_64, opt});
+    DISASM_INSN("vmax64.vv", vmax64_vv, 0, {&vd_64, &vs2_64, &vs1_64, opt});
+    DISASM_INSN("vmul64.vv", vmul64_vv, 0, {&vd_64, &vs2_64, &vs1_64, opt});
+    DISASM_INSN("vminu64.vv", vminu64_vv, 0, {&vd_64, &vs2_64, &vs1_64, opt});
+    DISASM_INSN("vmaxu64.vv", vmaxu64_vv, 0, {&vd_64, &vs2_64, &vs1_64, opt});
+    DISASM_INSN("vadd64.vx", vadd64_vx, 0, {&vd_64, &vs2_64, &xrs1_64, opt});
+    DISASM_INSN("vsub64.vx", vsub64_vx, 0, {&vd_64, &vs2_64, &xrs1_64, opt});
+    DISASM_INSN("vmin64.vx", vmin64_vx, 0, {&vd_64, &vs2_64, &xrs1_64, opt});
+    DISASM_INSN("vmax64.vx", vmax64_vx, 0, {&vd_64, &vs2_64, &xrs1_64, opt});
+    DISASM_INSN("vmul64.vx", vmul64_vx, 0, {&vd_64, &vs2_64, &xrs1_64, opt});
+    DISASM_INSN("vminu64.vx", vminu64_vx, 0, {&vd_64, &vs2_64, &xrs1_64, opt});
+    DISASM_INSN("vmaxu64.vx", vmaxu64_vx, 0, {&vd_64, &vs2_64, &xrs1_64, opt});
+    DISASM_INSN("vfadd64.vv", vfadd64_vv, 0, {&vd_64, &vs2_64, &vs1_64, opt});
+    DISASM_INSN("vfsub64.vv", vfsub64_vv, 0, {&vd_64, &vs2_64, &vs1_64, opt});
+    DISASM_INSN("vfmin64.vv", vfmin64_vv, 0, {&vd_64, &vs2_64, &vs1_64, opt});
+    DISASM_INSN("vfmax64.vv", vfmax64_vv, 0, {&vd_64, &vs2_64, &vs1_64, opt});
+    DISASM_INSN("vfmul64.vv", vfmul64_vv, 0, {&vd_64, &vs2_64, &vs1_64, opt});
+    DISASM_INSN("vfadd64.vf", vfadd64_vf, 0, {&vd_64, &vs2_64, &frs1_64, opt});
+    DISASM_INSN("vfsub64.vf", vfsub64_vf, 0, {&vd_64, &vs2_64, &frs1_64, opt});
+    DISASM_INSN("vfmin64.vf", vfmin64_vf, 0, {&vd_64, &vs2_64, &frs1_64, opt});
+    DISASM_INSN("vfmax64.vf", vfmax64_vf, 0, {&vd_64, &vs2_64, &frs1_64, opt});
+    DISASM_INSN("vfmul64.vf", vfmul64_vf, 0, {&vd_64, &vs2_64, &frs1_64, opt});
+
     std::vector<const arg_t *> v_ld_unit = {&vd, &v_address, opt, &vm};
     std::vector<const arg_t *> v_st_unit = {&vs3, &v_address, opt, &vm};
     std::vector<const arg_t *> v_ld_stride = {&vd, &v_address, &xrs2, opt, &vm};
@@ -1452,8 +1522,11 @@ void disassembler_t::add_instructions(const isa_parser_t* isa)
 
     #define DEFINE_VECTOR_V(code) add_vector_v_insn(this, #code, match_##code, mask_##code)
     #define DEFINE_VECTOR_VV(code) add_vector_vv_insn(this, #code, match_##code, mask_##code)
+    #define DEFINE_VECTOR_VV64(code) add_vector_vv64_insn(this, #code, match_##code, mask_##code)
     #define DEFINE_VECTOR_VX(code) add_vector_vx_insn(this, #code, match_##code, mask_##code)
+    #define DEFINE_VECTOR_VX64(code) add_vector_vx64_insn(this, #code, match_##code, mask_##code)
     #define DEFINE_VECTOR_VF(code) add_vector_vf_insn(this, #code, match_##code, mask_##code)
+    #define DEFINE_VECTOR_VF64(code) add_vector_vf64_insn(this, #code, match_##code, mask_##code)
     #define DEFINE_VECTOR_VI(code) add_vector_vi_insn(this, #code, match_##code, mask_##code)
     #define DEFINE_VECTOR_VIU(code) add_vector_viu_insn(this, #code, match_##code, mask_##code)
 
@@ -1507,30 +1580,31 @@ void disassembler_t::add_instructions(const isa_parser_t* isa)
       DEFINE_VECTOR_VXM(name##_vxm)
 
     //64-bit insns
-    DEFINE_VECTOR_VV(vadd64_vv);
-    DEFINE_VECTOR_VV(vsub64_vv);
-    DEFINE_VECTOR_VV(vmin64_vv);
-    DEFINE_VECTOR_VV(vmax64_vv);
-    DEFINE_VECTOR_VV(vmul64_vv);
-    DEFINE_VECTOR_VV(vminu64_vv);
-    DEFINE_VECTOR_VV(vmaxu64_vv);  
-    DEFINE_VECTOR_VX(vadd64_vx);
-    DEFINE_VECTOR_VX(vsub64_vx);
-    DEFINE_VECTOR_VX(vmin64_vx);
-    DEFINE_VECTOR_VX(vmax64_vx);
-    DEFINE_VECTOR_VX(vmul64_vx);
-    DEFINE_VECTOR_VX(vminu64_vx);
-    DEFINE_VECTOR_VX(vmaxu64_vx); 
-    DEFINE_VECTOR_VV(vfadd64_vv);
-    DEFINE_VECTOR_VV(vfsub64_vv);
-    DEFINE_VECTOR_VV(vfmin64_vv);
-    DEFINE_VECTOR_VV(vfmax64_vv);
-    DEFINE_VECTOR_VV(vfmul64_vv);
-    DEFINE_VECTOR_VF(vfadd64_vf);
-    DEFINE_VECTOR_VF(vfsub64_vf);
-    DEFINE_VECTOR_VF(vfmin64_vf);
-    DEFINE_VECTOR_VF(vfmax64_vf);
-    DEFINE_VECTOR_VF(vfmul64_vf);
+    // DEFINE_VECTOR_VV64(vadd64_vv);
+    // DEFINE_VECTOR_VV64(vsub64_vv);
+    // DEFINE_VECTOR_VV64(vmin64_vv);
+    // DEFINE_VECTOR_VV64(vmax64_vv);
+    // DEFINE_VECTOR_VV64(vmul64_vv);
+    // DEFINE_VECTOR_VV64(vminu64_vv);
+    // DEFINE_VECTOR_VV64(vmaxu64_vv);  
+    // DEFINE_VECTOR_VX64(vadd64_vx);
+    // DEFINE_VECTOR_VX64(vsub64_vx);
+    // DEFINE_VECTOR_VX64(vmin64_vx);
+    // DEFINE_VECTOR_VX64(vmax64_vx);
+    // DEFINE_VECTOR_VX64(vmul64_vx);
+    // DEFINE_VECTOR_VX64(vminu64_vx);
+    // DEFINE_VECTOR_VX64(vmaxu64_vx); 
+    // DEFINE_VECTOR_VV64(vfadd64_vv);
+    // DEFINE_VECTOR_VV64(vfsub64_vv);
+    // DEFINE_VECTOR_VV64(vfmin64_vv);
+    // DEFINE_VECTOR_VV64(vfmax64_vv);
+    // DEFINE_VECTOR_VV64(vfmul64_vv);
+    // DEFINE_VECTOR_VF64(vfadd64_vf);
+    // DEFINE_VECTOR_VF64(vfsub64_vf);
+    // DEFINE_VECTOR_VF64(vfmin64_vf);
+    // DEFINE_VECTOR_VF64(vfmax64_vf);
+    // DEFINE_VECTOR_VF64(vfmul64_vf);
+    
 
     //OPFVV/OPFVF
     //0b00_0000

@@ -1,7 +1,6 @@
 #include "ventus.h"
 #include <iostream>
 #include <cstdint>
-#include <cstdio>
 using namespace std;
 
 #ifndef KERNEL_ADDRESS
@@ -31,46 +30,51 @@ struct meta_data {
 };
 
 int main() {
+    uint64_t num_thread = 16;
+    uint64_t num_warp = 4;
+    uint64_t num_workgroups[3] = {1, 1, 1};
+    uint64_t num_workgroup = num_workgroups[0] * num_workgroups[1] * num_workgroups[2];
+    uint64_t ldssize = 0x1000;
+    uint64_t pdssize = 0x1000;
+    uint64_t pdsbase = 0x8a000000;
+    uint64_t knlbase = 0x90000000;
+
+    meta_data meta(0, num_workgroups, num_thread, num_warp, knlbase, ldssize, pdssize, 32, 32, pdsbase);
+
+    char filename[] = "test.riscv";
+
     const int data_len = 16;
-    uint16_t data_a[data_len] = {
-        0x3C00, 0xBC00, 0x3800, 0xB800,
-        0x0000, 0x7BFF, 0x0400, 0x8400,
-        0x3C00, 0xC000, 0x3C00, 0x3400,
-        0xB400, 0x0280, 0x8280, 0x4200
-    };
+    int16_t data_a[data_len] = {1,2,3,4,5,6,7,8,-8,-7,-6,-5,-4,-3,-2,-1};
+    int16_t data_b[data_len] = {1,-1,1,-1,1,-1,1,-1,1,-1,1,-1,1,-1,1,-1};
+    int16_t data_c[data_len] = {0};
 
-    uint16_t data_b = 0x4000;  // 2.0f
-    uint16_t data_c[data_len] = {0};
-
-    uint64_t vaddr_a, vaddr_b_scalar, vaddr_c, vaddr_meta, vaddr_argbuf, vaddr_print;
+    uint64_t vaddr_a, vaddr_b, vaddr_c, vaddr_meta, vaddr_argbuf, vaddr_print;
     uint64_t size_print = 0x10000000;
 
     vt_device_h p = nullptr;
     vt_dev_open(&p);
+    
+    vt_buf_alloc(p, sizeof(int16_t) * data_len, &vaddr_a, 0, 0, 0);
+    vt_buf_alloc(p, sizeof(int16_t) * data_len, &vaddr_b, 0, 0, 0);
+    vt_buf_alloc(p, sizeof(int16_t) * data_len, &vaddr_c, 0, 0, 0);
 
-    vt_buf_alloc(p, sizeof(data_a), &vaddr_a, 0, 0, 0);
-    vt_buf_alloc(p, sizeof(uint16_t), &vaddr_b_scalar, 0, 0, 0);  // only 1 scalar
-    vt_buf_alloc(p, sizeof(data_c), &vaddr_c, 0, 0, 0);
+    vt_buf_alloc(p, pdssize * num_thread * num_warp * num_workgroup, &pdsbase, 0, 0, 0);
     vt_buf_alloc(p, sizeof(uint32_t) * 14, &vaddr_meta, 0, 0, 0);
-    vt_buf_alloc(p, 3 * sizeof(uint32_t), &vaddr_argbuf, 0, 0, 0);
+    vt_buf_alloc(p, 3 * 4, &vaddr_argbuf, 0, 0, 0);
     vt_buf_alloc(p, size_print, &vaddr_print, 0, 0, 0);
 
-    vt_copy_to_dev(p, vaddr_a, data_a, sizeof(data_a), 0, 0);
-    vt_copy_to_dev(p, vaddr_b_scalar, &data_b, sizeof(uint16_t), 0, 0);
+    vt_copy_to_dev(p, vaddr_a, data_a, sizeof(int16_t) * data_len, 0, 0);
+    vt_copy_to_dev(p, vaddr_b, data_b, sizeof(int16_t) * data_len, 0, 0);
 
-    uint64_t num_thread = data_len;
-    uint64_t num_warp = 4;
-    uint64_t num_workgroups[3] = {1, 1, 1};
-    uint64_t pdsbase = 0x8a000000;
-
-    meta_data meta(KERNEL_ADDRESS, num_workgroups, num_thread, num_warp,
-                   vaddr_meta, 0x1000, 0x1000, 32, 32, pdsbase);
+    meta.kernel_id = KERNEL_ADDRESS;
+    meta.metaDataBaseAddr = vaddr_meta;
+    meta.pdsBaseAddr = pdsbase;
 
     uint32_t data_meta[14] = {0};
-    data_meta[0]  = (uint32_t)meta.kernel_id;
-    data_meta[1]  = (uint32_t)vaddr_argbuf;
-    data_meta[2]  = (uint32_t)meta.kernel_size[0];
-    data_meta[6]  = (uint32_t)meta.wf_size;
+    data_meta[0] = (uint32_t)meta.kernel_id;
+    data_meta[1] = (uint32_t)vaddr_argbuf;
+    data_meta[2] = meta.kernel_size[0];
+    data_meta[6] = num_thread;
     data_meta[12] = (uint32_t)vaddr_print;
     data_meta[13] = (uint32_t)size_print;
 
@@ -78,20 +82,24 @@ int main() {
 
     uint32_t arg_buf[3] = {
         (uint32_t)vaddr_a,
-        (uint32_t)vaddr_b_scalar,
+        (uint32_t)vaddr_b,
         (uint32_t)vaddr_c
     };
     vt_copy_to_dev(p, vaddr_argbuf, arg_buf, sizeof(arg_buf), 0, 0);
 
-    vt_upload_kernel_file(p, "test.riscv", 0);
+    vt_upload_kernel_file(p, filename, 0);
     vt_start(p, &meta, 0);
 
-    vt_copy_from_dev(p, vaddr_c, data_c, sizeof(data_c), 0, 0);
+    cout << "finish running" << endl;
 
-    cout << "Result (vfadd.vx float16 bit patterns):" << endl;
+    vt_copy_from_dev(p, vaddr_c, data_c, sizeof(int16_t) * data_len, 0, 0);
+
+    cout << "Result:" << endl;
+    cout << dec; 
     for (int i = 0; i < data_len; i++) {
-        printf("res[%2d] = 0x%04x\n", i, data_c[i]);
+        cout << data_c[i] << " ";
     }
+    cout << endl;
 
     vt_buf_free(p, 0, nullptr, 0, 0);
     vt_dev_close(p);
