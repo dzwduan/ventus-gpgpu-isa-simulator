@@ -238,7 +238,7 @@ int spike_device::alloc_const_mem(uint64_t size, uint64_t *vaddr) {
 }
 
 int spike_device::alloc_local_mem(uint64_t size, uint64_t *vaddr){
-  // 函数名起的有问题，这个函数负责所有9xxxxxxx地址的分配，包括lds、pds、metadata buffer等
+  // 函数名起的有问题，这个函数负责所有9xxxxxxx地址的分配，包括pds、metadata buffer等
   uint64_t base;
   #define PGSHIFT 12
   const reg_t PGSIZE = 1 << PGSHIFT;

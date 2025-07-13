@@ -13,23 +13,26 @@ make
 API 列表：
 
 ```C++
-void difftest_init(const char* metadata_file, const char* data_file, const char* elf_file);
+void difftest_ref_init(const char* metadata_file, const char* data_file,
+    const char* elf_file);
 // 初始化 REF 侧，需要 .metadata 和 .data 和 .riscv 文件
 
-int difftest_exec(uint64_t n);
-// 步进 n 条指令，返回值为 1 表示程序已运行结束
-// 目前仅支持所有 warp 同时步进，不支持单 warp 粒度的控制
+int difftest_ref_exec(uint32_t wg_id, uint32_t warp_id, uint32_t n);
+// 将指定 warp 步进 n 条指令
 
-int difftest_display();
-// 打印 XPR 和 PC
+void difftest_ref_regcpy(diff_ref_context_t* ctx, bool direction, bool on_demand);
+// 拷贝所有 workgroup 的状态，包括 PC 和标量寄存器
 
-void difftest_regcpy(diff_context_t* ctx, bool direction, bool on_demand);
-// direction 为 true 时将 ctx 的 XPR 和 PC 拷贝到 REF 侧，
-// 此时 on_demand 表示只拷贝 ctx 与 REF 有差异的寄存器
-// direction 为 false 时将 REF 侧的 XPR 和 PC 拷贝进 ctx
+void difftest_ref_set_warp_xreg(uint32_t wg_id, uint32_t warp_id,
+    uint32_t xreg_usage, diff_ref_warp_xreg_vec_t xreg);
+// 将 REF 的某个 warp 的标量寄存器置为指定值
+// 用于 DUT 向 SM 派遣新 warp 时，将标量寄存器状态同步到 REF
 
-int difftest_done();
-// 返回值为 1 表示程序已运行结束
+int difftest_ref_done(uint32_t wg_id);
+// 返回值为 1 表示该 workgroup 已运行结束
+
+int difftest_ref_display();
+// 打印 XPR 和 PC，调试用
 ```
 
 以下是一些编写 difftest 顶层仿真程序时可能有用的定义：
@@ -41,9 +44,10 @@ const int NFPR = 256;
 const int NVPR = 256;
 const int NCSR = 4096;
 typedef struct {
-  std::vector<std::array<uint64_t, 256>> xpr;
-  std::vector<uint64_t> pc;
-} diff_context_t;
+  // 外层 vector 为 workgroup
+  std::vector<std::vector<std::array<uint64_t, 256>>> xpr; // const int NXPR = 256;
+  std::vector<std::vector<uint64_t>> pc;
+} diff_ref_context_t; // 寄存器状态结构体
 enum { DIFFTEST_FROM_REF, DIFFTEST_TO_REF };
 #define FMT_WORD "0x%016lx"
 const char* xpr_name[] = {

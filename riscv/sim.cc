@@ -287,24 +287,52 @@ int sim_t::run()
   return htif_t::run();
 }
 
-void sim_t::prepare_to_step_difftest() {
-  // 内容来自 sim_t::run()，为调用 idle() 步进做准备，以供 difftest REF 步进
-  host = context_t::current();
-  target.init(sim_thread_main, this);
-  htif_t::prepare_to_step_difftest();
+void difftest_sim_thread_main(void* arg)
+{
+  ((sim_t*)arg)->difftest_main();
 }
 
-int sim_t::step_difftest(size_t n) {
-  for (size_t i = 0; i < n; i++) {
-    if (!done()) {
-      if (htif_t::step_difftest()) // 如果 difftest 在本次 step 中结束
-      {
-        stop();
-        return exit_code();
+void sim_t::difftest_main()
+{
+  if (!debug && log)
+    set_procs_debug(true);
+
+  while (!done())
+  {
+    if (debug || ctrlc_pressed)
+      interactive();
+    else {
+      procs[sim_step_info.warp_id]->step(sim_step_info.num_step);
+      procs[sim_step_info.warp_id]->get_mmu()->yield_load_reservation();
+      if (clint) {
+        clint->increment(sim_step_info.num_step / INSNS_PER_RTC_TICK / procs.size());
+        // 原版 ventus-gpgpu-isa-simulator 中是所有 warp 步进完后才 clint->increment()
+        // 因此这里除以了 num_warp
       }
-    } else {
+      host->switch_to(); // 切换回 host
+    }
+    if (remote_bitbang) {
+      remote_bitbang->tick();
+    }
+  }
+}
+
+void sim_t::init_difftest() {
+  // 内容来自 sim_t::run()，为调用 idle() 步进做准备，以供 difftest REF 步进
+  host = context_t::current();
+  target.init(difftest_sim_thread_main, this);
+  htif_t::init_difftest();
+}
+
+int sim_t::step_difftest() {
+  if (!done()) {
+    if (htif_t::step_difftest()) // 如果 difftest 在本次 step 中结束
+    {
+      stop();
       return exit_code();
     }
+  } else {
+    return exit_code();
   }
   return 0;
 }

@@ -28,6 +28,10 @@
 class mmu_t;
 class remote_bitbang_t;
 
+typedef struct {
+  uint32_t warp_id;
+  uint32_t num_step;
+} sim_step_info_t;
 
 // this class encapsulates the processors and memory in a RISC-V machine.
 class sim_t : public htif_t, public simif_t
@@ -79,8 +83,9 @@ public:
   void append_reach_end() override{reach_end.push_back(0);current_proc=0;}
   
   // difftest
-  void prepare_to_step_difftest();
-  int step_difftest(size_t n); // step through simulation
+  void init_difftest();
+  sim_step_info_t sim_step_info;
+  int step_difftest(); // step through simulation
 
 private:
   warp_schedule_t w;
@@ -171,6 +176,9 @@ private:
   // htif
   friend void sim_thread_main(void*);
   void main();
+
+  friend void difftest_sim_thread_main(void*);
+  void difftest_main();
 
   context_t* host;
   context_t target;

@@ -271,7 +271,7 @@ int htif_t::run()
   return exit_code();
 }
 
-void htif_t::prepare_to_step_difftest() {
+void htif_t::init_difftest() {
   start();
 
   auto enq_func = [](std::queue<reg_t>* q, uint64_t x) { q->push(x); };

@@ -70,9 +70,20 @@ enum { DIFFTEST_FROM_REF, DIFFTEST_TO_REF };
 #define FMT_WORD "0x%016lx"
 
 typedef struct {
-  std::vector<std::array<uint64_t, 256>> xpr; // const int NXPR = 256;
-  std::vector<uint64_t> pc;
-} diff_context_t; // 寄存器状态结构体
+  // 外层 vector 为 workgroup
+  std::vector<std::vector<std::array<uint64_t, 256>>> xpr; // const int NXPR = 256;
+  std::vector<std::vector<uint64_t>> pc;
+} diff_ref_context_t; // 寄存器状态结构体
+
+typedef struct {
+  std::vector<uint64_t> xreg;
+} diff_ref_warp_xreg_vec_t; // 用于 set xreg API
+
+typedef struct {
+  uint32_t wg_id;
+  uint32_t warp_id;
+  uint32_t num_step;
+} step_info_t;
 
 class DifftestRef {
 public:
@@ -86,39 +97,47 @@ public:
   int free_local_mem(uint64_t paddr);
   int copy_to_dev(uint64_t dev_maddr, uint64_t size, const void* data);
   int copy_from_dev(uint64_t dev_maddr, uint64_t size, void* data);
-  int run(meta_data_t* knl_data, uint64_t knl_start_pc);
+  // int run(meta_data_t* knl_data, uint64_t knl_start_pc);
   int set_filename(const char* filename, const char* logname = nullptr);
 
   // 以下是 difftest API 所需的函数
-  void step(uint64_t n);                                 // 步进n个周期
-  void get_regs(diff_context_t* ctx);                    // 将spike的寄存器状态拷贝到ctx
-  void set_regs(diff_context_t* ctx, bool on_demand);    // 将ctx的寄存器状态拷贝到spike
-  void memcpy_from_dut(reg_t dest, void* src, size_t n); // 将内存写入spike
-  void display();                                        // 打印寄存器内容
-  int done() { return sim->done(); }                     // REF 侧已运行到结尾
+  step_info_t step_info;
+  void step();                                 // 步进
+  void get_regs(diff_ref_context_t* ctx);                    // 将spike的寄存器状态拷贝到ctx
+  void set_regs(diff_ref_context_t* ctx, bool on_demand);    // 将ctx的寄存器状态拷贝到spike
+  void set_warp_xreg(uint32_t wg_id, uint32_t warp_id, uint32_t xreg_usage, diff_ref_warp_xreg_vec_t xreg);
+  // void memcpy_from_dut(reg_t dest, void* src, size_t n); // 将内存写入spike
+  void display(int wg_id);                                        // 打印寄存器内容
+  int done(uint32_t wg_id) { return sim[wg_id]->done(); }   // REF 侧已运行到结尾
   void update_dynamic_config(void* config) {
     printf("DifftestRef::update_dynamic_config() not implemented\n");
   } // 香山的代码中只是将 config->debug_difftest 赋值给了 sim->enable_difftest_logs
   void update_uarch_status(void* status) {
     printf("DifftestRef::update_uarch_status() not implemented\n");
   } // 将status选择性拷贝到spike的sim_t中
-  int store_commit(uint64_t* addr, uint64_t* data, uint8_t* mask) {
-    return sim->dut_store_commit(addr, data, mask);
-  } // 追踪 dut 的内存写入
+  // int store_commit(uint64_t* addr, uint64_t* data, uint8_t* mask) {
+  //   return sim->dut_store_commit(addr, data, mask);
+  // } // 追踪 dut 的内存写入
 
   // 以下用于 DifftestRef 构造函数
-  void init_sim(uint64_t knl_start_pc);
+  void init_sim(uint64_t knl_start_pc, uint64_t currwgid);
 
   // 以下用来初始化 .metadata
   void initMetaData(const std::string& filename);
 
   // 以下用来初始化 .data
   void initData(const std::string& filename);
+  
+  // kernel 尺寸
+  uint32_t num_workgroup; // 工作组数目
+  uint32_t num_warp;      // 每个工作组的warp数目
+  uint64_t currwgid;      // 本 DifftestRef 对象对应的 workgroup_id
 
 private:
-  sim_t* sim;
-  std::vector<state_t*> state; // 寄存器文件
-  std::vector<processor_t*> proc;
+  // 外层 vector 为 workgroup
+  std::vector<sim_t*> sim;
+  std::vector<std::vector<state_t*>> state; // 寄存器文件
+  std::vector<std::vector<processor_t*>> proc;
 
   std::vector<mem_cfg_t> buffer; // 可以在分配时让buffer地址对齐4k
   std::vector<std::pair<reg_t, mem_t*>> buffer_data;
@@ -142,6 +161,21 @@ private:
   void readTextFile(const std::string& filename, std::vector<std::vector<uint8_t>>& buffers,
                     meta_data_t mtd);
   void init_local_and_private_mem(std::vector<std::vector<uint8_t>>& buffers, meta_data_t mtd);
+};
+
+class DifftestMultiWgRef{
+public:
+  std::vector<DifftestRef*> wg;
+  uint32_t num_workgroup;
+  // 以下用来初始化 .metadata
+  void initMetaData(const std::string& filename);
+private:
+  // 以下用来初始化 .metadata
+  meta_data_t m_metadata;
+  void assignMetadata(const std::vector<uint64_t>& metadata, meta_data_t& mtd);
+  bool isHexCharacter(char c);
+  int charToHex(char c);
+  void readHexFile(const std::string& filename, int itemSize, std::vector<uint64_t>& items);
 };
 
 static std::vector<std::pair<reg_t, mem_t*>> make_mems(const std::vector<mem_cfg_t>& layout) {

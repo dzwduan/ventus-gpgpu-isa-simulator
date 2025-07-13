@@ -15,9 +15,130 @@
 
 /********* functions for initialize metadata ************/
 
-void DifftestRef::assignMetadata(const std::vector<uint64_t>& metadata, meta_data_t& mtd) {
+void DifftestMultiWgRef::assignMetadata(const std::vector<uint64_t>& metadata, meta_data_t& mtd) {
   int index = 0;
 
+  mtd.startaddr = metadata[index++];
+
+  mtd.kernel_id = metadata[index++];
+
+  for (int i = 0; i < 3; i++) {
+    mtd.kernel_size[i] = metadata[index++];
+  }
+
+  mtd.wf_size = metadata[index++];
+  mtd.wg_size = metadata[index++];
+  mtd.metaDataBaseAddr = metadata[index++];
+  mtd.ldsSize = metadata[index++];
+  mtd.pdsSize = metadata[index++];
+  mtd.sgprUsage = metadata[index++];
+  mtd.vgprUsage = metadata[index++];
+  mtd.pdsBaseAddr = metadata[index++];
+
+  mtd.num_buffer = metadata[index++] + 1; // add localmem buffer
+
+  mtd.buffer_base = new uint64_t[mtd.num_buffer];
+
+  for (int i = 0; i < mtd.num_buffer - 1; i++) {
+    mtd.buffer_base[i] = metadata[index++];
+    if (mtd.buffer_base[i] == mtd.startaddr)
+      mtd.insBufferIndex = i;
+  }
+  mtd.buffer_base[mtd.num_buffer - 1] = 0x70000000;
+  // ldsBaseAddr_core: localmem base addr
+
+  mtd.buffer_size = new uint64_t[mtd.num_buffer];
+  for (int i = 0; i < mtd.num_buffer - 1; i++) {
+    mtd.buffer_size[i] = metadata[index++];
+  }
+  mtd.buffer_size[mtd.num_buffer - 1] = 0;
+
+  mtd.buffer_allocsize = new uint64_t[mtd.num_buffer];
+  for (int i = 0; i < mtd.num_buffer - 1; i++) {
+    mtd.buffer_allocsize[i] = metadata[index++];
+  }
+  mtd.buffer_allocsize[mtd.num_buffer - 1] = mtd.ldsSize;
+}
+
+bool DifftestMultiWgRef::isHexCharacter(char c) {
+  return (c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f');
+}
+
+int DifftestMultiWgRef::charToHex(char c) {
+  if (c >= '0' && c <= '9')
+    return c - '0';
+  else if (c >= 'A' && c <= 'F')
+    return c - 'A' + 10;
+  else if (c >= 'a' && c <= 'f')
+    return c - 'a' + 10;
+  else
+    return -1; // Invalid character
+}
+
+void DifftestMultiWgRef::readHexFile(
+    const std::string& filename, int itemSize,
+    std::vector<uint64_t>& items) { // itemSize为每个数据的比特数，这里为64
+  std::ifstream file(filename);
+
+  if (!file) {
+    std::cout << "Error opening file: " << filename << std::endl;
+    return;
+  }
+
+  char c;
+  int bits = 0;
+  uint64_t value = 0;
+  bool leftside = false;
+
+  while (file.get(c)) {
+    if (c == '\n') {
+      if (bits != 0)
+        leftside = true;
+      continue;
+    }
+
+    if (!isHexCharacter(c)) {
+      std::cout << "Invalid character found: " << c << " in " << filename << std::endl;
+      continue;
+    }
+
+    int hexValue = charToHex(c);
+    if (leftside)
+      value = value | ((uint64_t)hexValue << (92 - bits));
+    else
+      value = (value << 4) | hexValue;
+    bits += 4;
+
+    if (bits >= itemSize) {
+      items.push_back(value);
+      value = 0;
+      bits = 0;
+      leftside = false;
+    }
+  }
+
+  if (bits > 0) {
+    std::cout << "Warning: Incomplete item found at the end of the file!" << std::endl;
+  }
+
+  file.close();
+}
+
+void DifftestMultiWgRef::initMetaData(const std::string& filename) {
+  std::vector<uint64_t> metadata;
+  readHexFile(filename, 64, metadata);
+  assignMetadata(metadata, m_metadata);
+  uint64_t num_workgroup_x = m_metadata.kernel_size[0];
+  uint64_t num_workgroup_y = m_metadata.kernel_size[1];
+  uint64_t num_workgroup_z = m_metadata.kernel_size[2];
+  num_workgroup = num_workgroup_x * num_workgroup_y * num_workgroup_z;
+}
+
+/********* functions for initialize metadata ************/
+
+void DifftestRef::assignMetadata(const std::vector<uint64_t>& metadata, meta_data_t& mtd) {
+  int index = 0;
+  assert(metadata.size() > 0);
   mtd.startaddr = metadata[index++];
 
   mtd.kernel_id = metadata[index++];
@@ -391,10 +512,10 @@ int DifftestRef::set_filename(const char* filename, const char* logname) {
 
 /**************** class DifftestRef **********************/
 
-DifftestRef::DifftestRef() : sim(nullptr), state(), proc() {
+DifftestRef::DifftestRef() : sim(), state(), proc(), buffer(), buffer_data() {
   // 构造函数，difftest_init API 的入口
-  srcfilename = new char[128];
-  logfilename = new char[128];
+  srcfilename = new char[256];
+  logfilename = new char[256];
   uint64_t lds_vaddr;
   uint64_t pc_src_vaddr;
   printf("DifftestRef initialize: allocating local memory: ");
@@ -403,22 +524,23 @@ DifftestRef::DifftestRef() : sim(nullptr), state(), proc() {
   alloc_const_mem(0x10000000, &pc_src_vaddr);
 }
 
-void DifftestRef::init_sim(uint64_t knl_start_pc) {
+void DifftestRef::init_sim(uint64_t knl_start_pc, uint64_t wg_id) {
+  currwgid = wg_id;
   // DifftestRef::init_sim: 从 m_metadata 初始化参数
-  uint64_t num_warp = m_metadata.wg_size;
+  num_warp = m_metadata.wg_size;
   uint64_t num_thread = m_metadata.wf_size;
   uint64_t num_workgroup_x = m_metadata.kernel_size[0];
   uint64_t num_workgroup_y = m_metadata.kernel_size[1];
   uint64_t num_workgroup_z = m_metadata.kernel_size[2];
-  uint64_t num_workgroup = num_workgroup_x * num_workgroup_y * num_workgroup_z;
-  uint64_t num_processor = num_warp * num_workgroup; // 这是本kernel需要的所有warp的数量
+  uint64_t init_sim_t_num_workgroup = num_workgroup_x * num_workgroup_y * num_workgroup_z;
+  num_workgroup = 1; // for multi workgroup difftest. run 1 workgroup in each DifftestRef.
+  uint64_t num_processor = num_warp * init_sim_t_num_workgroup; // 这是本kernel需要的所有warp的数量
   uint64_t ldssize = m_metadata.ldsSize;
   // uint64_t pdssize=m_metadata.pdsSize * num_thread;
   uint64_t pdssize = 0x10000000;
   uint64_t pdsbase = m_metadata.pdsBaseAddr;
   uint64_t start_pc = knl_start_pc;
   uint64_t knlbase = m_metadata.metaDataBaseAddr;
-  uint64_t currwgid = 0;
   if ((ldssize) > 0x10000000) {
     fprintf(stderr, "lds size is too large. please modify VBASEADDR");
     exit(-1);
@@ -605,14 +727,19 @@ void DifftestRef::init_sim(uint64_t knl_start_pc) {
   char arg_gpgpu[256];
   char arg_start_pc[32];
   ;
-  char arg_logfilename[64];
+  char arg_logfilename[256];
   sprintf(arg_logfilename, "--log=%s", logfilename);
   sprintf(arg_num_core, "-p%ld",
           num_processor); // arg_num_core = "-p{num_processor}"
+  // sprintf(arg_gpgpu,
+  //         "numw:%ld,numt:%ld,numwg:%ld,kernelx:%ld,kernely:%ld,kernelz:%ld,ldssize:"
+  //         "0x%lx,pdssize:0x%lx,pdsbase:0x%lx,knlbase:0x%lx,currwgid:%lx",
+  //         num_warp, num_thread, init_sim_t_num_workgroup, num_workgroup_x, num_workgroup_y, num_workgroup_z,
+  //         ldssize, pdssize, pdsbase, knlbase, currwgid);
   sprintf(arg_gpgpu,
           "numw:%ld,numt:%ld,numwg:%ld,kernelx:%ld,kernely:%ld,kernelz:%ld,ldssize:"
           "0x%lx,pdssize:0x%lx,pdsbase:0x%lx,knlbase:0x%lx,currwgid:%lx",
-          num_warp, num_thread, num_workgroup, num_workgroup_x, num_workgroup_y, num_workgroup_z,
+          num_warp, num_thread, init_sim_t_num_workgroup, num_workgroup_x, num_workgroup_y, num_workgroup_z,
           ldssize, pdssize, pdsbase, knlbase, currwgid);
   printf("arg gpgpu is %s\n", arg_gpgpu);
   sprintf(arg_vlen_elen, "vlen:%ld,elen:%d", num_thread * 32, 32);
@@ -691,61 +818,91 @@ void DifftestRef::init_sim(uint64_t knl_start_pc) {
   // 对应 spike_device 的 all_buffer_data
   std::vector<std::pair<reg_t, mem_t*>> mems = const_buffer_data;
   mems.insert(mems.end(), buffer_data.begin(), buffer_data.end());
-  // Create simulator instance
-  sim = new sim_t(cfg,            // cfg
-                  halted,         // halted
-                  mems,           // mems
-                  plugin_devices, // plugin_devices
-                  htif_args,      // args
-                  dm_config,      // dm_config
-                  log_path,       // log_path
-                  dtb_enabled,    // dtb_enabled
-                  dtb_file,       // dtb_file
-#ifdef HAVE_BOOST_ASIO
-                  nullptr, nullptr,
-#endif                    // HAVE_BOOST_ASIO
-                  nullptr // cmd_file
-  );
 
-  // DifftestRef::init_sim: new sim_t 后的初始化
-  if (dump_dts) {
-    printf("%s", sim->get_dts());
-    // return 0;
-  }
+  proc.resize(num_workgroup);
+  state.resize(num_workgroup);
+  for (int j=0; j<num_workgroup; j++) {
+    // Create simulator instance
+    sim_t* sim_new = new sim_t(cfg,            // cfg
+                    halted,         // halted
+                    mems,           // mems
+                    plugin_devices, // plugin_devices
+                    htif_args,      // args
+                    dm_config,      // dm_config
+                    log_path,       // log_path
+                    dtb_enabled,    // dtb_enabled
+                    dtb_file,       // dtb_file
+  #ifdef HAVE_BOOST_ASIO
+                    nullptr, nullptr,
+  #endif                    // HAVE_BOOST_ASIO
+                    nullptr // cmd_file
+    );
 
-  if (ic && l2)
-    ic->set_miss_handler(&*l2);
-  if (dc && l2)
-    dc->set_miss_handler(&*l2);
-  if (ic)
-    ic->set_log(log_cache);
-  if (dc)
-    dc->set_log(log_cache);
+    // DifftestRef::init_sim: new sim_t 后的初始化
+    if (dump_dts) {
+      printf("%s", sim_new->get_dts());
+      // return 0;
+    }
 
-  for (size_t i = 0; i < num_warp;
-       i++) { // TODO: 此处不完善。感觉迭代范围应该是 num_warp * SPIKE_RUN_WG_NUM
+    if (ic && l2)
+      ic->set_miss_handler(&*l2);
+    if (dc && l2)
+      dc->set_miss_handler(&*l2);
     if (ic)
-      sim->get_core(i)->get_mmu()->register_memtracer(&*ic);
+      ic->set_log(log_cache);
     if (dc)
-      sim->get_core(i)->get_mmu()->register_memtracer(&*dc);
-    for (auto e : extensions)
-      sim->get_core(i)->register_extension(e());
-    sim->get_core(i)->get_mmu()->set_cache_blocksz(blocksz);
+      dc->set_log(log_cache);
+
+    for (size_t i = 0; i < num_warp;
+        i++) { // TODO: 此处不完善。感觉迭代范围应该是 num_warp * SPIKE_RUN_WG_NUM
+      if (ic)
+        sim_new->get_core(i)->get_mmu()->register_memtracer(&*ic);
+      if (dc)
+        sim_new->get_core(i)->get_mmu()->register_memtracer(&*dc);
+      for (auto e : extensions)
+        sim_new->get_core(i)->register_extension(e());
+      sim_new->get_core(i)->get_mmu()->set_cache_blocksz(blocksz);
+    }
+
+    sim_new->set_debug(debug);
+  #ifdef RISCV_ENABLE_COMMITLOG
+    sim_new->configure_log(log, log_commits);
+  #endif // RISCV_ENABLE_COMMITLOG
+    sim_new->set_histogram(histogram);
+    
+    // DifftestRef::init_sim: Get the first processor
+    for (size_t i = 0; i < num_warp; i++) {
+      proc[j].push_back(sim_new->get_core(i));
+      state[j].push_back(proc[j][i]->get_state());
+    }
+
+    sim_new->init_difftest(); // 来自 sim_t::run()
+    sim.push_back(sim_new);
+    // currwgid++;
   }
 
-  sim->set_debug(debug);
-#ifdef RISCV_ENABLE_COMMITLOG
-  sim->configure_log(log, log_commits);
-#endif // RISCV_ENABLE_COMMITLOG
-  sim->set_histogram(histogram);
-  
-  // DifftestRef::init_sim: Get the first processor
-  for (size_t i = 0; i < num_warp; i++) {
-    proc.push_back(sim->get_core(i));
-    state.push_back(proc[i]->get_state());
-  } // 目前只支持单个workgroup
-
-  sim->prepare_to_step_difftest(); // 来自 sim_t::run()
+  // 跳过 spike 初始化指令，不知道是不是必要的
+  // spike 每次运行前都会执行 ~5 条指令，然后才从 0x8000_0000 开始，尚不知为何
+  for (int k = 0; k < num_workgroup; k++) {
+    for (int i = 0; i < num_warp; i++) {
+      step_info.wg_id = k;
+      step_info.warp_id = i;
+      step_info.num_step = 5; // spike 的初始化指令似乎每次都是 5 条
+      step();
+    }
+  }
+  // 初始化 spike 状态
+  diff_ref_context_t ctx;
+  ctx.xpr.resize(num_workgroup);
+  ctx.pc.resize(num_workgroup);
+  for (int k=0; k<num_workgroup; k++) {
+    ctx.xpr[k].resize(num_warp);
+    ctx.pc[k].resize(num_warp);
+    for (int j = 0; j < num_warp; j++) {
+        ctx.pc[k][j] = knl_start_pc;
+    }
+  }
+  set_regs(&ctx, false); // 将knl_start_pc设置到ref中
 }
 
 DifftestRef::~DifftestRef() {
@@ -756,164 +913,209 @@ DifftestRef::~DifftestRef() {
     delete pair.second;
   }
   delete cfg;
-  delete sim;
+  for (auto& item: sim) delete item;
   delete srcfilename;
   delete logfilename;
 }
 
-void DifftestRef::step(uint64_t n) {
-  for (int i = 0; i < n; i++)
-    sim->step_difftest(n); // 执行n个时钟周期
+void DifftestRef::step() {
+  // 根据 step_info 步进 ref
+  assert(step_info.wg_id < num_workgroup);
+  assert(step_info.warp_id < num_warp);
+  assert(step_info.num_step > 0);
+  sim[step_info.wg_id]->sim_step_info.warp_id = step_info.warp_id;
+  sim[step_info.wg_id]->sim_step_info.num_step = step_info.num_step;
+  sim[step_info.wg_id]->step_difftest();
 }
 
-void DifftestRef::get_regs(diff_context_t* ctx) {
+void DifftestRef::get_regs(diff_ref_context_t* ctx) {
   // 将 state 中的寄存器数据拷贝进 ctx:
-  uint64_t ctx_warp_num = proc.size();
-  for (int j = 0; j < ctx_warp_num; j++) {
-    std::array<uint64_t, 256> temp_xpr;
-    std::array<uint64_t, 256> temp_fpr;
-    for (int i = 0; i < NXPR; i++) {
-      temp_xpr[i] = state[j]->XPR[i];
-    }
-    ctx->xpr.push_back(temp_xpr);
-    ctx->pc.push_back(state[j]->pc);
-  }
-}
-
-void DifftestRef::set_regs(diff_context_t* ctx, bool on_demand) {
   assert(ctx != nullptr);
-  uint64_t ctx_warp_num = ctx->xpr.size();
-  assert(state.size() == ctx_warp_num);
-  assert(proc.size() == ctx_warp_num); // 断言指针非空、各个数组的大小相同
+  ctx->xpr.clear();
+  ctx->pc.clear();
+  ctx->xpr.resize(num_workgroup);
+  ctx->pc.resize(num_workgroup);
+  for (int k=0; k<num_workgroup; k++) {
+    for (int j = 0; j < num_warp; j++) {
+      std::array<uint64_t, 256> temp_xpr;
+      for (int i = 0; i < NXPR; i++) {
+        temp_xpr[i] = state[k][j]->XPR[i];
+      }
+      ctx->xpr[k].push_back(temp_xpr);
+      ctx->pc[k].push_back(state[k][j]->pc);
+    }
+  }
+}
+
+void DifftestRef::set_regs(diff_ref_context_t* ctx, bool on_demand) {
+  assert(ctx != nullptr);
   // 将 ctx 中的寄存器数据拷贝进 state:
-  for (int j = 0; j < ctx_warp_num; j++) {
-    for (int i = 0; i < NXPR; i++) {
-      if (!on_demand || state[j]->XPR[i] != ctx->xpr[j][i]) {
-        state[j]->XPR.write(i, ctx->xpr[j][i]);
-      }
-    }
-    if (!on_demand || state[j]->pc != ctx->pc[j]) {
-      state[j]->pc = ctx->pc[j];
-    }
-  }
-}
-
-void DifftestRef::memcpy_from_dut(reg_t vaddr, void* data, size_t size) {
-  bool found = false;
-  printf("DifftestRef::memcpy_from_dut(): copying to 0x%lx with %ld bytes\n", vaddr, size);
-
-  // Search in buffer_data
-  for (size_t i = 0; i < buffer.size(); ++i) {
-    if (vaddr >= buffer[i].base && vaddr < buffer[i].base + buffer[i].size) {
-      if (vaddr + size > buffer[i].base + buffer[i].size) {
-        fprintf(stderr, "Cannot copy to 0x%lx with size %ld\n", vaddr, size);
-        return;
-      }
-      buffer_data[i].second->store(vaddr - buffer_data[i].first, size, (const uint8_t*)data);
-      found = true;
-      printf("found data in buffer_data[%ld]\n", i);
-      break;
-    }
-  }
-
-  // Search in const_buffer_data if not found
-  if (!found) {
-    for (size_t i = 0; i < const_buffer.size(); ++i) {
-      if (vaddr >= const_buffer[i].base && vaddr < const_buffer[i].base + const_buffer[i].size) {
-        if (vaddr + size > const_buffer[i].base + const_buffer[i].size) {
-          fprintf(stderr, "Cannot copy to 0x%lx with size %ld\n", vaddr, size);
-          return;
+  for (int k=0; k<num_workgroup; k++) {
+    for (int j = 0; j < num_warp; j++) {
+      for (int i = 0; i < NXPR; i++) {
+        if (!on_demand || state[k][j]->XPR[i] != ctx->xpr[k][j][i]) {
+          state[k][j]->XPR.write(i, ctx->xpr[k][j][i]);
         }
-        const_buffer_data[i].second->store(vaddr - const_buffer_data[i].first, size,
-                                           (const uint8_t*)data);
-        found = true;
-        printf("found data in const_buffer_data[%ld]\n", i);
-        break;
+      }
+      if (!on_demand || state[k][j]->pc != ctx->pc[k][j]) {
+        state[k][j]->pc = ctx->pc[k][j];
       }
     }
-  }
-
-  if (!found) {
-    fprintf(stderr, "vaddr 0x%lx does not fit any allocated buffer\n", vaddr);
   }
 }
 
-void DifftestRef::display() {
+void DifftestRef::set_warp_xreg
+  (uint32_t wg_id, uint32_t warp_id, uint32_t xreg_usage, diff_ref_warp_xreg_vec_t xreg) {
+  assert(wg_id < num_workgroup);
+  assert(warp_id < num_warp);
+  assert(xreg.xreg.size() == xreg_usage);
+  for (int i=0; i<xreg_usage; i++) {
+    // 将 xreg 中的寄存器数据拷贝进 state:
+    state[wg_id][warp_id]->XPR.write(i, xreg.xreg[i]);
+  }
+}
+
+// void DifftestRef::memcpy_from_dut(reg_t vaddr, void* data, size_t size) {
+//   bool found = false;
+//   printf("DifftestRef::memcpy_from_dut(): copying to 0x%lx with %ld bytes\n", vaddr, size);
+
+//   // Search in buffer_data
+//   for (size_t i = 0; i < buffer.size(); ++i) {
+//     if (vaddr >= buffer[i].base && vaddr < buffer[i].base + buffer[i].size) {
+//       if (vaddr + size > buffer[i].base + buffer[i].size) {
+//         fprintf(stderr, "Cannot copy to 0x%lx with size %ld\n", vaddr, size);
+//         return;
+//       }
+//       buffer_data[i].second->store(vaddr - buffer_data[i].first, size, (const uint8_t*)data);
+//       found = true;
+//       printf("found data in buffer_data[%ld]\n", i);
+//       break;
+//     }
+//   }
+
+//   // Search in const_buffer_data if not found
+//   if (!found) {
+//     for (size_t i = 0; i < const_buffer.size(); ++i) {
+//       if (vaddr >= const_buffer[i].base && vaddr < const_buffer[i].base + const_buffer[i].size) {
+//         if (vaddr + size > const_buffer[i].base + const_buffer[i].size) {
+//           fprintf(stderr, "Cannot copy to 0x%lx with size %ld\n", vaddr, size);
+//           return;
+//         }
+//         const_buffer_data[i].second->store(vaddr - const_buffer_data[i].first, size,
+//                                            (const uint8_t*)data);
+//         found = true;
+//         printf("found data in const_buffer_data[%ld]\n", i);
+//         break;
+//       }
+//     }
+//   }
+
+//   if (!found) {
+//     fprintf(stderr, "vaddr 0x%lx does not fit any allocated buffer\n", vaddr);
+//   }
+// }
+
+void DifftestRef::display(int wg_id) {
   // 打印ref寄存器内容
-  int i, j;
-  uint64_t proc_warp_num = proc.size();
-  // proc_warp_num 表示当前 REF 的 warp 数量
-  // 目前 REF 只支持单个 workgroup
-  for (j = 0; j < proc_warp_num; j++) {
-    printf("Warp %d:\n", j);
-    for (i = 0; i < NXPR; i++) {
-      printf("%4s: " FMT_WORD " ", xpr_name[i], state[j]->XPR[i]);
-      if (i % 4 == 3) {
-        printf("\n");
+  int k, i, j;
+  for (k=0; k < num_workgroup; k++) {
+    for (j = 0; j < num_warp; j++) {
+      printf("Workgroup %d, Warp %d:\n", wg_id/*k*/, j);
+      for (i = 0; i < NXPR; i++) {
+        printf("%4s: " FMT_WORD " ", xpr_name[i], state[k][j]->XPR[i]);
+        if (i % 4 == 3) {
+          printf("\n");
+        }
       }
+      printf("pc: " FMT_WORD "\n", state[k][j]->pc);
     }
-    printf("pc: " FMT_WORD "\n", state[j]->pc);
+    printf("\n--------------------------------------------------\n\n");
   }
 }
 
 /***************** difftest API ********************/
 
-static DifftestRef* ref = nullptr; // 何时释放？
+static DifftestMultiWgRef* multi_wg_ref = nullptr; // 何时释放？
 
 extern "C" {
 
-void difftest_init(const char* metadata_file, const char* data_file, const char* elf_file) {
-  ref = new DifftestRef();
-  // init .metadata
-  ref->initMetaData(metadata_file);
-  // init .data
-  ref->initData(data_file);
-  ref->set_filename(elf_file, nullptr);
-  uint64_t knl_start_pc = 0x80000000;
-  ref->init_sim(knl_start_pc); // 对应 spike_device::run() 函数
+void difftest_ref_init(const char* metadata_file, const char* data_file, const char* elf_file) {
+  multi_wg_ref = new DifftestMultiWgRef();
+  multi_wg_ref->initMetaData(metadata_file);
+  for (uint64_t wg_id = 0; wg_id < multi_wg_ref->num_workgroup; wg_id++) {
+    DifftestRef* ref = new DifftestRef();
+    // init .metadata
+    ref->initMetaData(metadata_file);
+    // init .data
+    ref->initData(data_file);
+    ref->set_filename(elf_file, nullptr);
+    uint64_t knl_start_pc = 0x80000000;
+    ref->init_sim(knl_start_pc, wg_id); // 对应 spike_device::run() 函数
+    multi_wg_ref->wg.push_back(ref);
+  }
 }
 
-void difftest_regcpy(diff_context_t* ctx, bool direction, bool on_demand) {
+void difftest_ref_regcpy(diff_ref_context_t* ctx, bool direction, bool on_demand) {
+  diff_ref_context_t* temp = new diff_ref_context_t();
   if (direction == DIFFTEST_TO_REF) {
     // DIFFTEST_TO_REF
-    ref->set_regs(ctx, on_demand);
+    // ref->set_regs(ctx, on_demand);
+    printf("error: difftest_ref_regcpy with direction DIFFTEST_TO_REF is not supported yet. it is recommended to check the regcpy direction.\n");
+    assert(0);
     // 将ctx的寄存器状态拷贝到ref，on_demand为true表示只拷贝需要的寄存器
   } else {
-    ref->get_regs(ctx); // 将ref的寄存器状态拷贝到ctx
+    for (int i=0; i<multi_wg_ref->num_workgroup; i++) {
+      multi_wg_ref->wg[i]->get_regs(temp); // 将ref的寄存器状态拷贝到ctx
+      ctx->xpr.push_back(temp->xpr[0]);
+      ctx->pc.push_back(temp->pc[0]);
+    }
   }
 }
 
-void difftest_csrcpy(void* dut, bool direction) {} // TODO
-
-void difftest_memcpy(uint64_t addr, void* buf, size_t n, bool direction) { // TODO
-  if (direction == DIFFTEST_TO_REF) {
-    // DIFFTEST_TO_REF
-    ref->memcpy_from_dut(addr, buf, n);
-  } else {
-    printf("difftest_memcpy with DIFFTEST_TO_DUT is not supported yet\n");
-    exit(1);
-  }
-} // TODO: new sim_t后，DifftestRef类的buffer就不再对sim_t有影响，那么如何实现该API？
-
-int difftest_exec(uint64_t n) {
-  ref->step(n); // 执行n条指令
-  return ref->done();
+void difftest_ref_set_warp_xreg(uint32_t wg_id, uint32_t warp_id, uint32_t xreg_usage, diff_ref_warp_xreg_vec_t xreg) {
+  multi_wg_ref->wg[wg_id]->set_warp_xreg(0, warp_id, xreg_usage, xreg);
 }
 
-void difftest_display() { ref->display(); } // 打印寄存器内容
+void difftest_ref_csrcpy(void* dut, bool direction) {} // TODO
 
-void update_dynamic_config(void* config) { ref->update_dynamic_config(config); } // TODO
+// void difftest_ref_memcpy(uint64_t addr, void* buf, size_t n, bool direction) { // TODO
+//   if (direction == DIFFTEST_TO_REF) {
+//     // DIFFTEST_TO_REF
+//     ref->memcpy_from_dut(addr, buf, n);
+//   } else {
+//     printf("difftest_memcpy with DIFFTEST_TO_DUT is not supported yet\n");
+//     exit(1);
+//   }
+// } // TODO: new sim_t后，DifftestRef类的buffer就不再对sim_t有影响，那么如何实现该API？
+
+int difftest_ref_exec(uint32_t wg_id, uint32_t warp_id, uint32_t n) {
+  for (int i=0; i<n; i++) {
+    multi_wg_ref->wg[wg_id]->step_info.wg_id = 0;
+    multi_wg_ref->wg[wg_id]->step_info.warp_id = warp_id;
+    multi_wg_ref->wg[wg_id]->step_info.num_step = 1;
+    multi_wg_ref->wg[wg_id]->step(); // 执行1条指令
+  }
+  return multi_wg_ref->wg[wg_id]->done(0);
+}
+
+void difftest_ref_display() {
+  for (int i=0; i<multi_wg_ref->num_workgroup; i++){
+    multi_wg_ref->wg[i]->display(i);
+  }
+} // 打印寄存器内容
+
+void update_dynamic_config(void* config) {} // TODO
 // 香山的代码中只是将 config->debug_difftest 赋值给了 sim->enable_difftest_logs
 
-void difftest_uarchstatus_sync(void* dut) { ref->update_uarch_status(dut); } // TODO
+void difftest_ref_uarchstatus_sync(void* dut) {} // TODO
 // 香山：将dut的uarch_status选择性拷贝到ref
 
-int difftest_store_commit(uint64_t* addr, uint64_t* data, uint8_t* mask) { // TODO
-  return ref->store_commit(addr, data, mask);
-  // 香山的实现中，store_commit函数中调用了sim_t::dut_store_commit
-  // 其中dut_store_commit并不在sim_t中，而是在它的父类的父类diff_trace_t中
-}
+// int difftest_ref_store_commit(uint64_t* addr, uint64_t* data, uint8_t* mask) { // TODO
+//   return ref->store_commit(addr, data, mask);
+//   // 香山的实现中，store_commit函数中调用了sim_t::dut_store_commit
+//   // 其中dut_store_commit并不在sim_t中，而是在它的父类的父类diff_trace_t中
+// }
 
-int difftest_done() { return ref->done(); }
+int difftest_ref_done(uint32_t wg_id) { return multi_wg_ref->wg[wg_id]->done(0); }
 
 } // extern "C"

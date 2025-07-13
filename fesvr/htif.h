@@ -28,7 +28,7 @@ class htif_t : public chunked_memif_t
   int exit_code();
 
   // difftest
-  void prepare_to_step_difftest();
+  void init_difftest();
   int step_difftest();
 
   virtual memif_t& memif() { return mem; }
