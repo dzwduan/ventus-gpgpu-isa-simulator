@@ -1,0 +1,58 @@
+# 编译标志配置
+CompileFlags:
+  # 添加项目相关的包含路径
+  Add: [
+    "-I/home/duanzhenwei/riscv-isa-sim",
+    "-I/home/duanzhenwei/riscv-isa-sim/build",  # 用于生成的头文件
+    "-I/home/duanzhenwei/riscv-isa-sim/riscv",
+    "-I/home/duanzhenwei/riscv-isa-sim/fesvr",
+    "-I/home/duanzhenwei/riscv-isa-sim/softfloat",
+    "-I/home/duanzhenwei/riscv-isa-sim/spike_main",
+    "-std=c++17",
+    "-DHAVE_CONFIG_H",
+    "-DRISCV_ENABLED",
+    "-DFESVR_ENABLED",
+    "-DSOFTFLOAT_ENABLED",
+    "-DSPIKE_MAIN_ENABLED",
+  ]
+  # 移除可能导致问题的警告标志
+  Remove: ["-W*", "-w"]
+
+# 诊断设置
+Diagnostics:
+  # Clang-Tidy 规则
+  ClangTidy:
+    Add: [
+      "performance-*",
+      "modernize-*",
+      "readability-*",
+      "bugprone-*",
+    ]
+    Remove: [
+      "modernize-use-trailing-return-type",
+      "readability-magic-numbers",
+      "readability-uppercase-literal-suffix",
+    ]
+  UnusedIncludes: Strict
+
+# 代码格式化设置
+---
+If:
+  PathMatch: ".*\\.(c|cc|cpp|h|hpp)$"
+
+Format:
+  TabWidth: 2
+  IndentWidth: 2
+  UseTab: Never
+  ColumnLimit: 100
+  BreakBeforeBraces: Linux
+  AllowShortFunctionsOnASingleLine: Inline
+  AllowShortIfStatementsOnASingleLine: false
+  AllowShortLoopsOnASingleLine: false
+  SortIncludes: false
+  AlwaysBreakTemplateDeclarations: Yes
+
+# 索引设置
+Index:
+  Background: Build
+  StandardLibrary: Yes

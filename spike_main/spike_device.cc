@@ -255,7 +255,7 @@ int spike_device::alloc_local_mem(uint64_t size, uint64_t *vaddr){
     base=ARGBASEADDR;
   }
   else{
-    base=buffer.back().base+buffer.back().size;
+    base=buffer.back().get_base()+buffer.back().get_size();
   }
   
 
@@ -294,7 +294,7 @@ int spike_device::free_local_mem(){
 // todo: the memory management should be rewrite
 int spike_device::free_local_mem(uint64_t paddr) {
   for (std::vector<mem_cfg_t>::iterator it = buffer.begin(); it != buffer.end(); it++ )
-    if(it->base == paddr) {
+    if(it->get_base() == paddr) {
       it = buffer.erase(it);
       break;
     }
@@ -311,7 +311,7 @@ int spike_device::copy_to_dev(uint64_t vaddr, uint64_t size,const void *data){
   uint64_t i=0;
   fprintf(stderr, "to copy to 0x%lx with %ld bytes\n",vaddr,size);
   for (i=0; i<buffer.size(); ++i)
-    if(vaddr>=buffer[i].base && vaddr<buffer[i].base +buffer[i].size){
+    if(vaddr>=buffer[i].get_base() && vaddr<buffer[i].get_base() +buffer[i].get_size()){
       if( vaddr+size > buffer[i].base +buffer[i].size)
         fprintf(stderr,"cannot copy to %#lx with size %lx\n",vaddr,size);
       buffer_data[i].second->store(vaddr-buffer_data[i].first,size,(const uint8_t*)data);
